@@ -100,7 +100,7 @@ export default function ShowcasePage() {
         </div>
 
         {/* Product Grid */}
-        <div className="mt-16 grid gap-10 md:grid-cols-2">
+        <div className="mt-12 lg:mt-16 grid gap-6 lg:gap-10 md:grid-cols-2">
           {visibleProducts.length > 0 ? (
             visibleProducts.map((product, index) => (
               <Link
@@ -109,7 +109,6 @@ export default function ShowcasePage() {
                 style={{ animationDelay: `${index * 150 + 400}ms` }}
                 to={`/showcase/${product.id}`}
               >
-                {/* ... 保持原有卡片内容不变 ... */}
                 <div className="flex flex-col h-full lg:flex-row pointer-events-none">
                   <div className="relative aspect-video lg:aspect-auto lg:w-2/5 overflow-hidden">
                     <img
@@ -117,8 +116,8 @@ export default function ShowcasePage() {
                       className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110"
                       src={product.image}
                     />
-                    <div className="absolute left-6 top-6">
-                      <span className="rounded-full bg-black/60 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gold-500 backdrop-blur-md border border-white/10">
+                    <div className="absolute left-4 top-4 lg:left-6 lg:top-6">
+                      <span className="rounded-full bg-black/60 px-3 py-1.5 lg:px-4 lg:py-2 text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-gold-500 backdrop-blur-md border border-white/10">
                         {product.originLabel}
                       </span>
                     </div>
@@ -129,37 +128,37 @@ export default function ShowcasePage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-1 flex-col p-10">
+                  <div className="flex flex-1 flex-col p-6 lg:p-10">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-500/60 mb-2 block">
+                        <span className="text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.2em] text-gold-500/60 mb-1 lg:mb-2 block">
                           {product.category}
                         </span>
-                        <h3 className="heading-serif text-3xl text-white group-hover:text-gold-400 transition-colors">
+                        <h3 className="heading-serif text-2xl lg:text-3xl text-white group-hover:text-gold-400 transition-colors">
                           {product.name}
                         </h3>
                       </div>
-                      <div className="h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gold-500 group-hover:bg-gold-500 group-hover:text-slate-950 transition-all">
-                        <BadgeCheck className="h-5 w-5" />
+                      <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gold-500 group-hover:bg-gold-500 group-hover:text-slate-950 transition-all">
+                        <BadgeCheck className="h-4 w-4 lg:h-5 lg:w-5" />
                       </div>
                     </div>
 
-                    <p className="mt-6 flex-1 text-sm leading-relaxed text-slate-400 group-hover:text-slate-300 transition-colors">
+                    <p className="mt-4 lg:mt-6 flex-1 text-xs lg:text-sm leading-relaxed text-slate-400 group-hover:text-slate-300 transition-colors">
                       {product.description}
                     </p>
 
-                    <div className="mt-10 grid grid-cols-3 gap-4 border-t border-white/5 pt-8">
+                    <div className="mt-8 lg:mt-10 grid grid-cols-3 gap-3 lg:gap-4 border-t border-white/5 pt-6 lg:pt-8">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">零售建议</p>
-                        <p className="text-lg heading-serif text-white">{product.prices.retail}</p>
+                        <p className="text-[8px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-500">零售建议</p>
+                        <p className="text-base lg:text-lg heading-serif text-white">{product.prices.retail}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">大宗批发</p>
-                        <p className="text-base font-bold text-gold-500">{product.prices.wholesale}</p>
+                        <p className="text-[8px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-500">大宗批发</p>
+                        <p className="text-sm lg:text-base font-bold text-gold-500">{product.prices.wholesale}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">礼盒定制</p>
-                        <p className="text-base font-bold text-slate-300">{product.prices.gift}</p>
+                        <p className="text-[8px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-500">礼盒定制</p>
+                        <p className="text-sm lg:text-base font-bold text-slate-300">{product.prices.gift}</p>
                       </div>
                     </div>
                   </div>
