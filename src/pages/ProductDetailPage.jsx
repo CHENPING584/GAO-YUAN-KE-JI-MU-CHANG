@@ -121,17 +121,17 @@ export default function ProductDetailPage() {
               <div className="mt-12 space-y-8">
                 <div className="flex items-center justify-between rounded-[2rem] bg-white/[0.01] p-10 border border-white/5 transition-all hover:bg-white/[0.03]">
                   <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">零售建议价</span>
-                  <span className="heading-serif text-4xl text-white">{product.pricing.retail}</span>
+                  <span className="heading-serif text-4xl text-white">{product.prices.retail}</span>
                 </div>
                 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="rounded-[2rem] border border-white/5 bg-white/[0.01] p-10 transition-all hover:bg-white/[0.03]">
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">大宗批发价</p>
-                    <p className="heading-serif text-3xl text-gold-500">{product.pricing.wholesale}</p>
+                    <p className="heading-serif text-3xl text-gold-500">{product.prices.wholesale}</p>
                   </div>
                   <div className="rounded-[2rem] border border-white/5 bg-white/[0.01] p-10 transition-all hover:bg-white/[0.03]">
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">礼盒定制价</p>
-                    <p className="heading-serif text-3xl text-slate-300">{product.pricing.gift}</p>
+                    <p className="heading-serif text-3xl text-slate-300">{product.prices.gift}</p>
                   </div>
                 </div>
               </div>
