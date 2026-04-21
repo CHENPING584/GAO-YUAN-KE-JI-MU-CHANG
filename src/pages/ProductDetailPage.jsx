@@ -165,40 +165,40 @@ export default function ProductDetailPage() {
           onClick={() => setShowContact(false)}
         >
           <div 
-            className="glass-card max-w-xl w-full p-12 lg:p-16 relative animate-in slide-in-from-bottom-8 duration-500"
+            className="glass-card max-w-xl w-full p-8 lg:p-16 relative animate-in slide-in-from-bottom-8 duration-500"
             onClick={(e) => e.stopPropagation()}
           >
             <button 
-              className="absolute top-8 right-8 h-12 w-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-slate-500 transition-all hover:bg-white/10 hover:text-white active:scale-90"
+              className="absolute top-6 right-6 h-10 w-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-slate-500 transition-all hover:bg-white/10 hover:text-white active:scale-90"
               onClick={() => setShowContact(false)}
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </button>
 
-            <h3 className="heading-serif text-4xl text-white mb-6">建立信任连接</h3>
-            <p className="text-lg text-slate-400 leading-relaxed mb-12 font-light">
+            <h3 className="heading-serif text-3xl lg:text-4xl text-white mb-4 lg:mb-6">建立信任连接</h3>
+            <p className="text-base lg:text-lg text-slate-400 leading-relaxed mb-8 lg:mb-12 font-light">
               请通过以下方式联系主理人 <span className="text-gold-500 font-bold">{product.contact.owner}</span>，
               咨询产品详情、原产地实况及采购事宜。
             </p>
             
-            <div className="space-y-10">
-              <div className="flex flex-col items-center gap-8 p-10 rounded-[2.5rem] bg-white/[0.01] border border-white/10 transition-all hover:bg-white/[0.03] group">
-                <div className="mx-auto flex h-48 w-48 items-center justify-center rounded-[2rem] border border-dashed border-gold-500/20 bg-gold-500/5 transition-transform duration-500 group-hover:scale-105">
-                  <QrCode className="h-16 w-16 text-gold-500 opacity-60" />
+            <div className="space-y-6 lg:space-y-10">
+              <div className="flex flex-col items-center gap-6 lg:gap-8 p-6 lg:p-10 rounded-[2.5rem] bg-white/[0.01] border border-white/10 transition-all hover:bg-white/[0.03] group">
+                <div className="mx-auto flex h-32 w-32 lg:h-48 lg:w-48 items-center justify-center rounded-[2rem] border border-dashed border-gold-500/20 bg-gold-500/5 transition-transform duration-500 group-hover:scale-105">
+                  <QrCode className="h-12 w-12 lg:h-16 lg:w-16 text-gold-500 opacity-60" />
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2">微信私域连接</p>
-                  <p className="text-2xl font-bold text-white">ID: {product.contact.wechat}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1 lg:mb-2">微信私域连接</p>
+                  <p className="text-xl lg:text-2xl font-bold text-white">ID: {product.contact.wechat}</p>
                 </div>
               </div>
               
-              <div className="p-10 rounded-[2.5rem] bg-white/[0.01] border border-white/10 flex items-center justify-between transition-all hover:bg-white/[0.03] group cursor-pointer active:scale-[0.98]">
+              <div className="p-6 lg:p-10 rounded-[2.5rem] bg-white/[0.01] border border-white/10 flex items-center justify-between transition-all hover:bg-white/[0.03] group cursor-pointer active:scale-[0.98]">
                 <div>
-                   <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2">服务电话</p>
-                   <p className="heading-serif text-3xl text-white group-hover:text-gold-400 transition-colors">{product.contact.phone}</p>
+                   <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1 lg:mb-2">服务电话</p>
+                   <p className="heading-serif text-2xl lg:text-3xl text-white group-hover:text-gold-400 transition-colors">{product.contact.phone}</p>
                 </div>
-                <div className="h-16 w-16 rounded-full bg-gold-500 text-slate-950 flex items-center justify-center shadow-gold-glow transition-transform duration-500 group-hover:rotate-12 group-active:scale-90">
-                   <Phone className="h-8 w-8" />
+                <div className="h-12 w-12 lg:h-16 lg:w-16 rounded-full bg-gold-500 text-slate-950 flex items-center justify-center shadow-gold-glow transition-transform duration-500 group-hover:rotate-12 group-active:scale-90">
+                   <Phone className="h-6 w-6 lg:h-8 lg:w-8" />
                 </div>
               </div>
             </div>

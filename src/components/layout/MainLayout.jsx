@@ -1,15 +1,27 @@
-import { Menu, Mountain, X } from 'lucide-react';
+import { 
+  Menu, 
+  Mountain, 
+  X, 
+  Home, 
+  Search, 
+  Store, 
+  User, 
+  ShieldCheck, 
+  Users, 
+  MessageCircle,
+  ChevronRight 
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 
 const navItems = [
-  { label: '首页', to: '/' },
-  { label: '溯源大厅', to: '/traceability' },
-  { label: '农场商城', to: '/showcase' },
-  { label: '我是农户/我要发布', to: '/dashboard/farmer' },
-  { label: '审核后台', to: '/admin-review' },
-  { label: '合作伙伴', to: '/partners' },
-  { label: '关于我们', to: '/connect' },
+  { label: '首页', to: '/', icon: Home, desc: '回到大厅起点' },
+  { label: '溯源大厅', to: '/traceability', icon: Search, desc: '查验产品数字档案' },
+  { label: '农场商城', to: '/showcase', icon: Store, desc: '探索高原优质产品' },
+  { label: '农户后台', to: '/dashboard/farmer', icon: User, desc: '管理我的牧场与发布' },
+  { label: '审核后台', to: '/admin-review', icon: ShieldCheck, desc: '资质与产品审核管理' },
+  { label: '合作伙伴', to: '/partners', icon: Users, desc: '共建生态的伙伴们' },
+  { label: '关于我们', to: '/connect', icon: MessageCircle, desc: '了解我们的使命与愿景' },
 ];
 
 function navClassName({ isActive }) {
@@ -97,29 +109,65 @@ export default function MainLayout() {
         <div className="fixed inset-0 z-[150] lg:hidden">
           {/* 背景遮罩 - 点击关闭菜单 */}
           <div 
-            className="absolute inset-0 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500 cursor-pointer"
+            className="absolute inset-0 bg-black/90 backdrop-blur-3xl animate-in fade-in duration-500 cursor-pointer"
             onClick={() => setIsMenuOpen(false)}
           ></div>
           
           {/* 菜单内容容器 */}
-          <div className="container-shell relative z-[160] h-full pt-32 pb-10">
+          <div className="container-shell relative z-[160] flex h-full flex-col justify-center py-10">
             <div 
-              className="glass-card flex max-h-[80vh] flex-col overflow-y-auto !rounded-[2.5rem] border-white/10 bg-[#0a0f0d] shadow-2xl animate-in slide-in-from-top-8 duration-700 pointer-events-auto"
+              className="glass-card flex max-h-[85vh] flex-col overflow-hidden !rounded-[3rem] border-white/10 bg-black/60 shadow-2xl animate-in slide-in-from-bottom-12 duration-700 pointer-events-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {navItems.map((item) => (
+              {/* 移动端菜单页眉 */}
+              <div className="border-b border-white/5 bg-white/[0.02] px-10 py-8">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-500 text-slate-950 shadow-gold-glow">
+                    <Mountain className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <h2 className="heading-serif text-xl text-white">导航菜单</h2>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gold-500/60">高原科技牧场 · 数字化桥梁</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 菜单项列表 */}
+              <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+                <div className="grid gap-3">
+                  {navItems.map((item) => (
+                    <button
+                      key={item.to}
+                      className="group flex w-full items-center gap-5 rounded-3xl p-5 text-left transition-all duration-500 hover:bg-white/5 active:scale-[0.98] cursor-pointer border border-transparent hover:border-white/5"
+                      onClick={() => handleMobileNav(item.to)}
+                      type="button"
+                    >
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/5 text-slate-400 transition-all duration-500 group-hover:bg-gold-500/10 group-hover:text-gold-500 group-hover:shadow-gold-glow/20">
+                        <item.icon className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="block text-lg font-bold tracking-wide text-slate-200 group-hover:text-white transition-colors">
+                          {item.label}
+                        </span>
+                        <span className="block text-xs text-slate-500 group-hover:text-slate-400 transition-colors">
+                          {item.desc}
+                        </span>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-slate-600 transition-all duration-500 group-hover:translate-x-1 group-hover:text-gold-500" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 移动端菜单页脚 */}
+              <div className="border-t border-white/5 bg-white/[0.02] px-10 py-8">
                 <button
-                  key={item.to}
-                  className="group flex w-full items-center justify-between border-b border-white/5 last:border-0 px-8 py-8 text-left transition-all duration-300 hover:bg-white/5 active:bg-gold-500/20 cursor-pointer"
-                  onClick={() => handleMobileNav(item.to)}
-                  type="button"
+                  className="btn-outline w-full !py-4 text-xs font-bold tracking-widest"
+                  onClick={() => setIsMenuOpen(false)}
                 >
-                  <span className="text-xl font-bold tracking-wide text-slate-300 group-hover:text-white transition-colors">
-                    {item.label}
-                  </span>
-                  <div className="h-3 w-3 rounded-full bg-gold-500 opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-125 shadow-gold-glow"></div>
+                  关闭导航
                 </button>
-              ))}
+              </div>
             </div>
           </div>
         </div>
