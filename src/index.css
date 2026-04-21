@@ -47,4 +47,19 @@ input {
 
 .glass-card {
   @apply rounded-3xl border border-white/10 bg-white/5 shadow-soft backdrop-blur;
+  @apply transition-all duration-300;
+}
+
+.glass-card:hover {
+  @apply border-white/20 bg-white/10 -translate-y-1 shadow-2xl;
+}
+
+.btn-plateau {
+  @apply rounded-full bg-plateau-500 px-6 py-3 font-semibold text-white transition-all duration-300;
+  @apply hover:bg-plateau-400 hover:shadow-lg active:scale-95;
+}
+
+.section-title {
+  @apply text-3xl font-bold tracking-tight text-white sm:text-4xl;
+  @apply opacity-0 animate-fade-in-up;
 }

@@ -42,60 +42,65 @@ export default function ShowcasePage() {
   }, [activeCategory]);
 
   return (
-    <section className="container-shell py-12 sm:py-16">
-      <div className="mb-8 max-w-4xl">
-        <p className="text-sm uppercase tracking-[0.25em] text-plateau-200">
-          Showcase
-        </p>
-        <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
-          农场商城展示墙
-        </h2>
-        <p className="mt-4 text-base leading-7 text-slate-300">
-          结合项目书中的三级差异化定价策略，面向零售用户、批量采购方和礼赠客户提供不同规格价格展示；
-          页面仅做展示与咨询引流，不介入支付和资金流转。
-        </p>
-      </div>
+    <div className="animate-fade-in">
+      <section className="container-shell py-12 sm:py-16">
+        <div className="mb-12 max-w-4xl animate-fade-in-up">
+          <p className="text-sm uppercase tracking-[0.25em] text-plateau-200">
+            Showcase
+          </p>
+          <h2 className="mt-3 text-4xl font-extrabold text-white sm:text-5xl">
+            农场商城展示墙
+          </h2>
+          <p className="mt-6 text-lg leading-relaxed text-slate-300">
+            结合项目书中的三级差异化定价策略，面向零售用户、批量采购方和礼赠客户提供不同规格价格展示；
+            页面仅做展示与咨询引流，不介入支付和资金流转。
+          </p>
+        </div>
 
-      <div className="glass-card mb-8 p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h3 className="text-xl font-semibold text-white">产品分类</h3>
-            <p className="mt-2 text-sm text-slate-400">
-              展示牦牛肉、藏羊、青稞、枸杞等高原特色产品
-            </p>
-          </div>
+        <div className="glass-card mb-12 p-8 animate-fade-in-up delay-100">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-white">精选分类</h3>
+              <p className="mt-2 text-slate-400">
+                筛选牦牛肉、藏羊、青稞、枸杞等高原特色产品
+              </p>
+            </div>
 
-          <div className="flex flex-wrap gap-3">
-            {categories.map((category) => (
-              <button
-                key={category}
-                className={[
-                  'rounded-full px-4 py-2 text-sm transition',
-                  activeCategory === category
-                    ? 'bg-plateau-500 text-white'
-                    : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10',
-                ].join(' ')}
-                onClick={() => setActiveCategory(category)}
-                type="button"
-              >
-                {category}
-              </button>
-            ))}
+            <div className="flex flex-wrap gap-3">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  className={[
+                    'rounded-full px-6 py-2.5 text-sm font-medium transition-all duration-300',
+                    activeCategory === category
+                      ? 'bg-plateau-500 text-white shadow-lg shadow-plateau-500/20'
+                      : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-white/20',
+                  ].join(' ')}
+                  onClick={() => setActiveCategory(category)}
+                  type="button"
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        {visibleProducts.map((product) => (
-          <article key={product.id} className="glass-card overflow-hidden">
-            <div className="grid h-full gap-0 md:grid-cols-[0.95fr_1.05fr]">
-              <div className="relative min-h-72 overflow-hidden">
-                <img
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                  src={product.image}
-                />
+        <div className="grid gap-8 xl:grid-cols-2">
+          {visibleProducts.map((product, index) => (
+            <article 
+              key={product.id} 
+              className="glass-card group overflow-hidden animate-scale-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className="grid h-full gap-0 md:grid-cols-[0.95fr_1.05fr]">
+                <div className="relative min-h-72 overflow-hidden">
+                  <img
+                    alt={product.name}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
+                    src={product.image}
+                  />
                 <div className="absolute left-4 top-4 flex flex-wrap gap-2">
                   <span className="rounded-full bg-slate-950/75 px-3 py-1 text-xs text-white">
                     {product.category}
@@ -241,5 +246,6 @@ export default function ShowcasePage() {
         </div>
       )}
     </section>
+    </div>
   );
 }

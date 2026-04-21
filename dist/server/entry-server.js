@@ -1,9 +1,9 @@
-import { jsxs, jsx, Fragment } from "react/jsx-runtime";
+import { jsx, jsxs, Fragment } from "react/jsx-runtime";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router-dom/server.mjs";
 import { useNavigate, Link, useLocation, Navigate, NavLink, Outlet, useParams, Routes, Route } from "react-router-dom";
-import { Clock3, MapPinned, ShieldCheck, BadgeCheck, Video, QrCode, MessageSquareWarning, CheckCircle2, XCircle, UserRound, Phone, Upload, ImagePlus, LoaderCircle, ArrowRight, ArrowLeft, Mountain, X, Menu, Users, MessageCircleMore, Store, Camera, ChevronRight, Package, Trash2, Leaf, Waves, ClipboardList, Building2, Medal, Star, Sprout, ImageIcon, Navigation, WifiOff, RefreshCw, PauseCircle, AlertTriangle, DatabaseZap, Search, ScanLine, ShieldPlus, FileCheck2 } from "lucide-react";
+import { Lock, KeyRound, Clock3, MapPinned, ShieldCheck, BadgeCheck, Video, QrCode, MessageSquareWarning, CheckCircle2, XCircle, UserRound, Phone, Upload, ImagePlus, LoaderCircle, ArrowRight, ArrowLeft, Mountain, X, Menu, Users, MessageCircleMore, Store, Camera, ChevronRight, Package, Trash2, Leaf, Waves, ClipboardList, Building2, Medal, Star, Sprout, ImageIcon, Navigation, WifiOff, RefreshCw, PauseCircle, AlertTriangle, DatabaseZap, Search, ScanLine, ShieldPlus, FileCheck2 } from "lucide-react";
 const DB_NAME$1 = "plateau-tech-ranch";
 const DB_VERSION = 2;
 const STORE_NAME$1 = "farmer-listings";
@@ -83,6 +83,7 @@ function updateFarmerListingStatus(id, status, reviewNote) {
     request.onerror = () => reject(request.error);
   });
 }
+const ADMIN_AUTH_CODE = "XC0115";
 function buildObjectUrl(file) {
   if (!file) {
     return null;
@@ -91,11 +92,30 @@ function buildObjectUrl(file) {
 }
 function AdminReviewPage() {
   var _a, _b, _c, _d, _e, _f, _g, _h;
+  const [isAuthorized, setIsAuthorized] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("admin_auth") === "true";
+    }
+    return false;
+  });
+  const [inputCode, setInputCode] = useState("");
+  const [authError, setAuthError] = useState(false);
   const [listings, setListings] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [reviewNote, setReviewNote] = useState(
     "已核验视频水印、产地信息与资料完整性。"
   );
+  const handleAuthSubmit = (e) => {
+    e.preventDefault();
+    if (inputCode === ADMIN_AUTH_CODE) {
+      setIsAuthorized(true);
+      sessionStorage.setItem("admin_auth", "true");
+      setAuthError(false);
+    } else {
+      setAuthError(true);
+      setTimeout(() => setAuthError(false), 2e3);
+    }
+  };
   const loadListings = async () => {
     try {
       const nextListings = await getFarmerListings();
@@ -109,8 +129,10 @@ function AdminReviewPage() {
     }
   };
   useEffect(() => {
-    void loadListings();
-  }, []);
+    if (isAuthorized) {
+      void loadListings();
+    }
+  }, [isAuthorized]);
   const selectedListing = useMemo(
     () => listings.find((item) => item.id === selectedId) ?? listings[0] ?? null,
     [listings, selectedId]
@@ -149,6 +171,39 @@ function AdminReviewPage() {
     await updateFarmerListingStatus(selectedListing.id, status, reviewNote);
     await loadListings();
   };
+  if (!isAuthorized) {
+    return /* @__PURE__ */ jsx("section", { className: "container-shell flex min-h-[70vh] items-center justify-center py-12", children: /* @__PURE__ */ jsxs("div", { className: "glass-card w-full max-w-md p-8 text-center animate-fade-in", children: [
+      /* @__PURE__ */ jsx("div", { className: "mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-sky-500/10 text-sky-300", children: /* @__PURE__ */ jsx(Lock, { className: "h-10 w-10" }) }),
+      /* @__PURE__ */ jsx("h2", { className: "text-2xl font-bold text-white", children: "审核后台访问受限" }),
+      /* @__PURE__ */ jsx("p", { className: "mt-3 text-slate-400 leading-relaxed", children: "请输入管理员授权码以进入审核系统" }),
+      /* @__PURE__ */ jsxs("form", { onSubmit: handleAuthSubmit, className: "mt-8 space-y-4", children: [
+        /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+          /* @__PURE__ */ jsx(KeyRound, { className: "absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "password",
+              placeholder: "输入授权码",
+              className: `w-full rounded-2xl border bg-slate-950/70 py-4 pl-12 pr-4 text-white outline-none transition-all ${authError ? "border-rose-500 animate-pulse" : "border-white/10 focus:border-sky-500"}`,
+              value: inputCode,
+              onChange: (e) => setInputCode(e.target.value),
+              autoFocus: true
+            }
+          )
+        ] }),
+        authError && /* @__PURE__ */ jsx("p", { className: "text-sm text-rose-400 animate-fade-in", children: "授权码错误，请重新输入" }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "submit",
+            className: "w-full btn-plateau bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-900/20",
+            children: "验证并进入"
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsx("p", { className: "mt-8 text-xs text-slate-500", children: "授权码由项目主理人分发，请妥善保管" })
+    ] }) });
+  }
   return /* @__PURE__ */ jsxs("section", { className: "container-shell py-12 sm:py-16", children: [
     /* @__PURE__ */ jsxs("div", { className: "mb-8 max-w-4xl", children: [
       /* @__PURE__ */ jsx("p", { className: "text-sm uppercase tracking-[0.25em] text-sky-200", children: "Admin Review" }),
@@ -1542,43 +1597,61 @@ const highlights = [
   }
 ];
 function HomePage() {
-  return /* @__PURE__ */ jsx("section", { className: "container-shell py-12 sm:py-16", children: /* @__PURE__ */ jsx("div", { className: "glass-card overflow-hidden p-8 sm:p-12", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-center", children: [
-    /* @__PURE__ */ jsxs("div", { children: [
-      /* @__PURE__ */ jsx("span", { className: "rounded-full border border-plateau-300/30 bg-plateau-500/10 px-4 py-2 text-sm text-plateau-200", children: "第十五届挑战杯项目衍生平台" }),
-      /* @__PURE__ */ jsx("h2", { className: "mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl", children: "为青海农牧产品打造看得见、讲得清、传得开的数字名片" }),
-      /* @__PURE__ */ jsx("p", { className: "mt-5 max-w-2xl text-base leading-8 text-slate-300", children: "“高原科技牧场”聚焦青海农牧散户、企业与消费者之间的信息信任问题， 通过轻量化可视化溯源与展示体系，让产品故事、生态价值与生产流程直观可见。" }),
-      /* @__PURE__ */ jsxs("div", { className: "mt-8 flex flex-wrap gap-3", children: [
-        /* @__PURE__ */ jsx(
-          Link,
+  return /* @__PURE__ */ jsxs("div", { className: "animate-fade-in", children: [
+    /* @__PURE__ */ jsx("section", { className: "container-shell py-12 sm:py-20", children: /* @__PURE__ */ jsxs("div", { className: "glass-card relative overflow-hidden p-8 sm:p-16", children: [
+      /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-plateau-500/10 blur-3xl" }),
+      /* @__PURE__ */ jsxs("div", { className: "relative grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center", children: [
+        /* @__PURE__ */ jsxs("div", { className: "animate-fade-in-up", children: [
+          /* @__PURE__ */ jsx("span", { className: "inline-block rounded-full border border-plateau-300/30 bg-plateau-500/10 px-4 py-2 text-sm font-medium text-plateau-200", children: "第十五届挑战杯项目衍生平台" }),
+          /* @__PURE__ */ jsxs("h1", { className: "mt-8 text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:leading-tight", children: [
+            "为青海农牧产品打造",
+            /* @__PURE__ */ jsx("span", { className: "text-plateau-400", children: "看得见、讲得清、传得开" }),
+            "的数字名片"
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "mt-6 max-w-2xl text-lg leading-relaxed text-slate-300", children: "“高原科技牧场”聚焦青海农牧散户、企业与消费者之间的信息信任问题， 通过轻量化可视化溯源与展示体系，让产品故事、生态价值与生产流程直观可见。" }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-10 flex flex-wrap gap-4", children: [
+            /* @__PURE__ */ jsx(Link, { className: "btn-plateau", to: "/traceability", children: "进入溯源大厅" }),
+            /* @__PURE__ */ jsx(
+              Link,
+              {
+                className: "rounded-full border border-white/15 bg-white/5 px-8 py-3 text-sm font-semibold text-slate-100 transition-all hover:bg-white/10 hover:border-white/30",
+                to: "/showcase",
+                children: "查看农场商城"
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "animate-scale-in delay-200", children: /* @__PURE__ */ jsx("div", { className: "rounded-[2.5rem] border border-white/10 bg-[linear-gradient(135deg,rgba(61,168,117,0.25),rgba(15,23,32,0.6))] p-8 shadow-2xl backdrop-blur-sm", children: /* @__PURE__ */ jsx("div", { className: "grid gap-6 sm:grid-cols-2", children: highlights.map(({ icon: Icon, title, description }, index) => /* @__PURE__ */ jsxs(
+          "div",
           {
-            className: "rounded-full bg-plateau-500 px-6 py-3 text-sm font-medium text-white transition hover:bg-plateau-400",
-            to: "/traceability",
-            children: "进入溯源大厅"
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          Link,
-          {
-            className: "rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10",
-            to: "/showcase",
-            children: "查看农场商城"
-          }
-        )
+            className: "group rounded-3xl border border-white/10 bg-slate-950/40 p-6 transition-all duration-500 hover:border-plateau-500/30 hover:bg-slate-950/60",
+            style: { animationDelay: `${(index + 3) * 100}ms` },
+            children: [
+              /* @__PURE__ */ jsx("div", { className: "flex h-12 w-12 items-center justify-center rounded-2xl bg-plateau-500/15 text-plateau-300 transition-transform duration-500 group-hover:scale-110 group-hover:bg-plateau-500/25", children: /* @__PURE__ */ jsx(Icon, { className: "h-6 w-6" }) }),
+              /* @__PURE__ */ jsx("h3", { className: "mt-5 text-xl font-bold text-white", children: title }),
+              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-relaxed text-slate-400", children: description })
+            ]
+          },
+          title
+        )) }) }) })
       ] })
-    ] }),
-    /* @__PURE__ */ jsx("div", { className: "rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(61,168,117,0.25),rgba(15,23,32,0.6))] p-6", children: /* @__PURE__ */ jsx("div", { className: "grid gap-4 sm:grid-cols-2", children: highlights.map(({ icon: Icon, title, description }) => /* @__PURE__ */ jsxs(
-      "div",
-      {
-        className: "rounded-3xl border border-white/10 bg-slate-950/40 p-5",
-        children: [
-          /* @__PURE__ */ jsx(Icon, { className: "h-6 w-6 text-plateau-300" }),
-          /* @__PURE__ */ jsx("h3", { className: "mt-4 text-lg font-semibold text-white", children: title }),
-          /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-6 text-slate-400", children: description })
-        ]
-      },
-      title
-    )) }) })
-  ] }) }) });
+    ] }) }),
+    /* @__PURE__ */ jsxs("section", { className: "container-shell py-16 sm:py-24", children: [
+      /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx("h2", { className: "section-title", children: "核心价值主张" }),
+        /* @__PURE__ */ jsx("p", { className: "mx-auto mt-4 max-w-2xl text-slate-400", children: "通过科技赋能传统农牧业，构建产销一体化信任桥梁" })
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "mt-16 grid gap-8 md:grid-cols-3", children: [
+        { title: "数据驱动", desc: "全流程数字化采集，确保每一份档案真实可靠", color: "bg-blue-500/10" },
+        { title: "生态优先", desc: "强调青海净土品牌价值，提升农产品溢价能力", color: "bg-emerald-500/10" },
+        { title: "直连消费", desc: "打破信息壁垒，让消费者直达生产源头牧场", color: "bg-amber-500/10" }
+      ].map((item, i) => /* @__PURE__ */ jsxs("div", { className: "glass-card p-8 text-center animate-fade-in-up", style: { animationDelay: `${(i + 1) * 150}ms` }, children: [
+        /* @__PURE__ */ jsx("div", { className: `mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl ${item.color}`, children: /* @__PURE__ */ jsx("div", { className: "h-3 w-3 rounded-full bg-current animate-pulse" }) }),
+        /* @__PURE__ */ jsx("h3", { className: "text-xl font-bold text-white", children: item.title }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 text-slate-400 leading-relaxed", children: item.desc })
+      ] }, i)) })
+    ] })
+  ] });
 }
 const partners = [
   {
@@ -2239,23 +2312,23 @@ function ShowcasePage() {
     }
     return products.filter((product) => product.category === activeCategory);
   }, [activeCategory]);
-  return /* @__PURE__ */ jsxs("section", { className: "container-shell py-12 sm:py-16", children: [
-    /* @__PURE__ */ jsxs("div", { className: "mb-8 max-w-4xl", children: [
+  return /* @__PURE__ */ jsx("div", { className: "animate-fade-in", children: /* @__PURE__ */ jsxs("section", { className: "container-shell py-12 sm:py-16", children: [
+    /* @__PURE__ */ jsxs("div", { className: "mb-12 max-w-4xl animate-fade-in-up", children: [
       /* @__PURE__ */ jsx("p", { className: "text-sm uppercase tracking-[0.25em] text-plateau-200", children: "Showcase" }),
-      /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-bold text-white sm:text-4xl", children: "农场商城展示墙" }),
-      /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-7 text-slate-300", children: "结合项目书中的三级差异化定价策略，面向零售用户、批量采购方和礼赠客户提供不同规格价格展示； 页面仅做展示与咨询引流，不介入支付和资金流转。" })
+      /* @__PURE__ */ jsx("h2", { className: "mt-3 text-4xl font-extrabold text-white sm:text-5xl", children: "农场商城展示墙" }),
+      /* @__PURE__ */ jsx("p", { className: "mt-6 text-lg leading-relaxed text-slate-300", children: "结合项目书中的三级差异化定价策略，面向零售用户、批量采购方和礼赠客户提供不同规格价格展示； 页面仅做展示与咨询引流，不介入支付和资金流转。" })
     ] }),
-    /* @__PURE__ */ jsx("div", { className: "glass-card mb-8 p-6", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between", children: [
+    /* @__PURE__ */ jsx("div", { className: "glass-card mb-12 p-8 animate-fade-in-up delay-100", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between", children: [
       /* @__PURE__ */ jsxs("div", { children: [
-        /* @__PURE__ */ jsx("h3", { className: "text-xl font-semibold text-white", children: "产品分类" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-slate-400", children: "展示牦牛肉、藏羊、青稞、枸杞等高原特色产品" })
+        /* @__PURE__ */ jsx("h3", { className: "text-2xl font-bold text-white", children: "精选分类" }),
+        /* @__PURE__ */ jsx("p", { className: "mt-2 text-slate-400", children: "筛选牦牛肉、藏羊、青稞、枸杞等高原特色产品" })
       ] }),
       /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-3", children: categories.map((category) => /* @__PURE__ */ jsx(
         "button",
         {
           className: [
-            "rounded-full px-4 py-2 text-sm transition",
-            activeCategory === category ? "bg-plateau-500 text-white" : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+            "rounded-full px-6 py-2.5 text-sm font-medium transition-all duration-300",
+            activeCategory === category ? "bg-plateau-500 text-white shadow-lg shadow-plateau-500/20" : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-white/20"
           ].join(" "),
           onClick: () => setActiveCategory(category),
           type: "button",
@@ -2264,92 +2337,100 @@ function ShowcasePage() {
         category
       )) })
     ] }) }),
-    /* @__PURE__ */ jsx("div", { className: "grid gap-6 xl:grid-cols-2", children: visibleProducts.map((product) => /* @__PURE__ */ jsx("article", { className: "glass-card overflow-hidden", children: /* @__PURE__ */ jsxs("div", { className: "grid h-full gap-0 md:grid-cols-[0.95fr_1.05fr]", children: [
-      /* @__PURE__ */ jsxs("div", { className: "relative min-h-72 overflow-hidden", children: [
-        /* @__PURE__ */ jsx(
-          "img",
-          {
-            alt: product.name,
-            className: "h-full w-full object-cover",
-            loading: "lazy",
-            src: product.image
-          }
-        ),
-        /* @__PURE__ */ jsxs("div", { className: "absolute left-4 top-4 flex flex-wrap gap-2", children: [
-          /* @__PURE__ */ jsx("span", { className: "rounded-full bg-slate-950/75 px-3 py-1 text-xs text-white", children: product.category }),
-          /* @__PURE__ */ jsx("span", { className: "rounded-full bg-plateau-500 px-3 py-1 text-xs text-white", children: product.origin })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "p-6", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-4", children: [
-          /* @__PURE__ */ jsxs("div", { children: [
+    /* @__PURE__ */ jsx("div", { className: "grid gap-8 xl:grid-cols-2", children: visibleProducts.map((product, index) => /* @__PURE__ */ jsx(
+      "article",
+      {
+        className: "glass-card group overflow-hidden animate-scale-in",
+        style: { animationDelay: `${index * 100}ms` },
+        children: /* @__PURE__ */ jsxs("div", { className: "grid h-full gap-0 md:grid-cols-[0.95fr_1.05fr]", children: [
+          /* @__PURE__ */ jsxs("div", { className: "relative min-h-72 overflow-hidden", children: [
             /* @__PURE__ */ jsx(
-              Link,
+              "img",
               {
-                className: "text-2xl font-semibold text-white transition hover:text-plateau-200",
-                to: `/showcase/${product.id}`,
-                children: product.name
+                alt: product.name,
+                className: "h-full w-full object-cover transition-transform duration-700 group-hover:scale-110",
+                loading: "lazy",
+                src: product.image
               }
             ),
-            /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-6 text-slate-400", children: product.description })
+            /* @__PURE__ */ jsxs("div", { className: "absolute left-4 top-4 flex flex-wrap gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "rounded-full bg-slate-950/75 px-3 py-1 text-xs text-white", children: product.category }),
+              /* @__PURE__ */ jsx("span", { className: "rounded-full bg-plateau-500 px-3 py-1 text-xs text-white", children: product.origin })
+            ] })
           ] }),
-          /* @__PURE__ */ jsx(Package, { className: "h-5 w-5 shrink-0 text-plateau-300" })
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-wrap gap-2 text-xs", children: [
-          /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-white/10 px-3 py-1 text-slate-300", children: [
-            "规格：",
-            product.specs
-          ] }),
-          /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-white/10 px-3 py-1 text-slate-300", children: [
-            "溯源码：",
-            product.traceCode
+          /* @__PURE__ */ jsxs("div", { className: "p-6", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-4", children: [
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx(
+                  Link,
+                  {
+                    className: "text-2xl font-semibold text-white transition hover:text-plateau-200",
+                    to: `/showcase/${product.id}`,
+                    children: product.name
+                  }
+                ),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-6 text-slate-400", children: product.description })
+              ] }),
+              /* @__PURE__ */ jsx(Package, { className: "h-5 w-5 shrink-0 text-plateau-300" })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-wrap gap-2 text-xs", children: [
+              /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-white/10 px-3 py-1 text-slate-300", children: [
+                "规格：",
+                product.specs
+              ] }),
+              /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-white/10 px-3 py-1 text-slate-300", children: [
+                "溯源码：",
+                product.traceCode
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-3 sm:grid-cols-3", children: [
+              /* @__PURE__ */ jsxs("div", { className: "rounded-2xl border border-white/10 bg-white/5 p-4", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-slate-400", children: "零售价" }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg font-semibold text-white", children: product.pricing.retail })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "rounded-2xl border border-white/10 bg-white/5 p-4", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-slate-400", children: "批发价" }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg font-semibold text-white", children: product.pricing.wholesale })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "rounded-2xl border border-white/10 bg-white/5 p-4", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-slate-400", children: "礼盒价" }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg font-semibold text-white", children: product.pricing.gift })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3 text-sm text-slate-300", children: [
+              /* @__PURE__ */ jsx(BadgeCheck, { className: "h-4 w-4 text-plateau-300" }),
+              /* @__PURE__ */ jsx("span", { children: "展示型商城，不直接处理支付，统一转私域主理人承接咨询。" })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-6 flex flex-col gap-3 sm:flex-row", children: [
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  className: "flex items-center justify-center gap-2 rounded-full bg-plateau-500 px-5 py-3 text-sm font-medium text-white transition hover:bg-plateau-400",
+                  onClick: () => setSelectedProduct(product),
+                  type: "button",
+                  children: [
+                    /* @__PURE__ */ jsx(MessageCircleMore, { className: "h-4 w-4" }),
+                    "立即咨询"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxs(
+                Link,
+                {
+                  className: "flex items-center justify-center gap-2 rounded-full border border-white/10 px-5 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10",
+                  to: `/showcase/${product.id}`,
+                  children: [
+                    /* @__PURE__ */ jsx(ChevronRight, { className: "h-4 w-4" }),
+                    "查看详情"
+                  ]
+                }
+              )
+            ] })
           ] })
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-3 sm:grid-cols-3", children: [
-          /* @__PURE__ */ jsxs("div", { className: "rounded-2xl border border-white/10 bg-white/5 p-4", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-xs text-slate-400", children: "零售价" }),
-            /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg font-semibold text-white", children: product.pricing.retail })
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "rounded-2xl border border-white/10 bg-white/5 p-4", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-xs text-slate-400", children: "批发价" }),
-            /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg font-semibold text-white", children: product.pricing.wholesale })
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "rounded-2xl border border-white/10 bg-white/5 p-4", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-xs text-slate-400", children: "礼盒价" }),
-            /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg font-semibold text-white", children: product.pricing.gift })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3 text-sm text-slate-300", children: [
-          /* @__PURE__ */ jsx(BadgeCheck, { className: "h-4 w-4 text-plateau-300" }),
-          /* @__PURE__ */ jsx("span", { children: "展示型商城，不直接处理支付，统一转私域主理人承接咨询。" })
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-6 flex flex-col gap-3 sm:flex-row", children: [
-          /* @__PURE__ */ jsxs(
-            "button",
-            {
-              className: "flex items-center justify-center gap-2 rounded-full bg-plateau-500 px-5 py-3 text-sm font-medium text-white transition hover:bg-plateau-400",
-              onClick: () => setSelectedProduct(product),
-              type: "button",
-              children: [
-                /* @__PURE__ */ jsx(MessageCircleMore, { className: "h-4 w-4" }),
-                "立即咨询"
-              ]
-            }
-          ),
-          /* @__PURE__ */ jsxs(
-            Link,
-            {
-              className: "flex items-center justify-center gap-2 rounded-full border border-white/10 px-5 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10",
-              to: `/showcase/${product.id}`,
-              children: [
-                /* @__PURE__ */ jsx(ChevronRight, { className: "h-4 w-4" }),
-                "查看详情"
-              ]
-            }
-          )
         ] })
-      ] })
-    ] }) }, product.id)) }),
+      },
+      product.id
+    )) }),
     /* @__PURE__ */ jsxs("div", { className: "glass-card mt-8 flex items-center gap-4 p-6 text-slate-300", children: [
       /* @__PURE__ */ jsx(Sprout, { className: "h-8 w-8 text-plateau-300" }),
       /* @__PURE__ */ jsx("p", { className: "text-sm leading-6", children: "后续可在该模块继续接入 Supabase 或 Firebase 商品数据，实现商品发布、图片上传、价格策略管理与咨询线索归档。" })
@@ -2392,7 +2473,7 @@ function ShowcasePage() {
         ] })
       ] })
     ] }) })
-  ] });
+  ] }) });
 }
 function LazyImage({ src, alt, className = "" }) {
   const wrapperRef = useRef(null);

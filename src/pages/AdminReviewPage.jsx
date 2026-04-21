@@ -2,6 +2,8 @@ import {
   BadgeCheck,
   CheckCircle2,
   Clock3,
+  KeyRound,
+  Lock,
   MapPinned,
   MessageSquareWarning,
   QrCode,
@@ -16,6 +18,8 @@ import {
   updateFarmerListingStatus,
 } from '../utils/farmerListingsStore';
 
+const ADMIN_AUTH_CODE = 'XC0115';
+
 function buildObjectUrl(file) {
   if (!file) {
     return null;
@@ -25,11 +29,32 @@ function buildObjectUrl(file) {
 }
 
 export default function AdminReviewPage() {
+  const [isAuthorized, setIsAuthorized] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('admin_auth') === 'true';
+    }
+    return false;
+  });
+  const [inputCode, setInputCode] = useState('');
+  const [authError, setAuthError] = useState(false);
+
   const [listings, setListings] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [reviewNote, setReviewNote] = useState(
     '已核验视频水印、产地信息与资料完整性。',
   );
+
+  const handleAuthSubmit = (e) => {
+    e.preventDefault();
+    if (inputCode === ADMIN_AUTH_CODE) {
+      setIsAuthorized(true);
+      sessionStorage.setItem('admin_auth', 'true');
+      setAuthError(false);
+    } else {
+      setAuthError(true);
+      setTimeout(() => setAuthError(false), 2000);
+    }
+  };
 
   const loadListings = async () => {
     try {
@@ -42,8 +67,10 @@ export default function AdminReviewPage() {
   };
 
   useEffect(() => {
-    void loadListings();
-  }, []);
+    if (isAuthorized) {
+      void loadListings();
+    }
+  }, [isAuthorized]);
 
   const selectedListing = useMemo(
     () => listings.find((item) => item.id === selectedId) ?? listings[0] ?? null,
@@ -88,6 +115,51 @@ export default function AdminReviewPage() {
     await updateFarmerListingStatus(selectedListing.id, status, reviewNote);
     await loadListings();
   };
+
+  if (!isAuthorized) {
+    return (
+      <section className="container-shell flex min-h-[70vh] items-center justify-center py-12">
+        <div className="glass-card w-full max-w-md p-8 text-center animate-fade-in">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-sky-500/10 text-sky-300">
+            <Lock className="h-10 w-10" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">审核后台访问受限</h2>
+          <p className="mt-3 text-slate-400 leading-relaxed">
+            请输入管理员授权码以进入审核系统
+          </p>
+
+          <form onSubmit={handleAuthSubmit} className="mt-8 space-y-4">
+            <div className="relative">
+              <KeyRound className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+              <input
+                type="password"
+                placeholder="输入授权码"
+                className={`w-full rounded-2xl border bg-slate-950/70 py-4 pl-12 pr-4 text-white outline-none transition-all ${
+                  authError ? 'border-rose-500 animate-pulse' : 'border-white/10 focus:border-sky-500'
+                }`}
+                value={inputCode}
+                onChange={(e) => setInputCode(e.target.value)}
+                autoFocus
+              />
+            </div>
+            {authError && (
+              <p className="text-sm text-rose-400 animate-fade-in">授权码错误，请重新输入</p>
+            )}
+            <button
+              type="submit"
+              className="w-full btn-plateau bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-900/20"
+            >
+              验证并进入
+            </button>
+          </form>
+
+          <p className="mt-8 text-xs text-slate-500">
+            授权码由项目主理人分发，请妥善保管
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="container-shell py-12 sm:py-16">
