@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AdminReviewPage from './pages/AdminReviewPage';
 import ApplyFarmerPage from './pages/ApplyFarmerPage';
 import AuditStatusPage from './pages/AuditStatusPage';
@@ -12,30 +13,41 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import ShowcasePage from './pages/ShowcasePage';
 import TraceabilityPage from './pages/TraceabilityPage';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
-    <Routes>
-      <Route element={<MainLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="/traceability" element={<TraceabilityPage />} />
-        <Route path="/showcase" element={<ShowcasePage />} />
-        <Route path="/showcase/:productId" element={<ProductDetailPage />} />
-        <Route path="/apply-farmer" element={<ApplyFarmerPage />} />
-        <Route path="/audit-status" element={<AuditStatusPage />} />
-        <Route
-          path="/dashboard/farmer"
-          element={
-            <FarmerRouteGuard>
-              <FarmerDashboardPage />
-            </FarmerRouteGuard>
-          }
-        />
-        <Route path="/farmer-dashboard" element={<Navigate replace to="/dashboard/farmer" />} />
-        <Route path="/admin-review" element={<AdminReviewPage />} />
-        <Route path="/partners" element={<PartnersPage />} />
-        <Route path="/connect" element={<ConnectPage />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="/traceability" element={<TraceabilityPage />} />
+          <Route path="/showcase" element={<ShowcasePage />} />
+          <Route path="/showcase/:productId" element={<ProductDetailPage />} />
+          <Route path="/apply-farmer" element={<ApplyFarmerPage />} />
+          <Route path="/audit-status" element={<AuditStatusPage />} />
+          <Route
+            path="/dashboard/farmer"
+            element={
+              <FarmerRouteGuard>
+                <FarmerDashboardPage />
+              </FarmerRouteGuard>
+            }
+          />
+          <Route path="/farmer-dashboard" element={<Navigate replace to="/dashboard/farmer" />} />
+          <Route path="/admin-review" element={<AdminReviewPage />} />
+          <Route path="/partners" element={<PartnersPage />} />
+          <Route path="/connect" element={<ConnectPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

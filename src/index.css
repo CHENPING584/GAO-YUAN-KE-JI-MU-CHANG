@@ -1,65 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color: #e2e8f0;
-  background:
-    radial-gradient(circle at top, rgba(61, 168, 117, 0.18), transparent 40%),
-    linear-gradient(180deg, #08110d 0%, #0f1720 100%);
-  font-family:
-    'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system,
-    BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color-scheme: dark;
+  --glass-bg: rgba(255, 255, 255, 0.02);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-reflection: rgba(255, 255, 255, 0.08);
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html {
+html,
+body {
+  @apply overflow-x-hidden w-full;
   scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  min-width: 320px;
+  @apply bg-[#080d0b] text-slate-300 selection:bg-gold-500/30 font-sans;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(100, 130, 104, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(212, 175, 55, 0.03) 0px, transparent 50%);
   min-height: 100vh;
+  position: relative;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
 }
-
-button,
-input {
-  font: inherit;
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
 }
-
-#root {
-  min-height: 100vh;
+::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-white/5 transition-colors hover:bg-white/10;
 }
 
 .container-shell {
-  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  @apply mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12;
 }
 
+/* Premium Glass Card */
 .glass-card {
-  @apply rounded-3xl border border-white/10 bg-white/5 shadow-soft backdrop-blur;
-  @apply transition-all duration-300;
+  @apply rounded-[3rem] border border-white/[0.05] bg-white/[0.01] shadow-premium backdrop-blur-2xl;
+  @apply transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)];
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(212, 175, 55, 0.03), transparent 60%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
 }
 
 .glass-card:hover {
-  @apply border-white/20 bg-white/10 -translate-y-1 shadow-2xl;
+  @apply border-white/10 bg-white/[0.03] -translate-y-3 shadow-gold-glow;
 }
 
-.btn-plateau {
-  @apply rounded-full bg-plateau-500 px-6 py-3 font-semibold text-white transition-all duration-300;
-  @apply hover:bg-plateau-400 hover:shadow-lg active:scale-95;
+.glass-card:hover::after {
+  opacity: 1;
+}
+
+/* Typography */
+.heading-serif {
+  @apply font-serif font-black tracking-tight leading-[1.15];
 }
 
 .section-title {
-  @apply text-3xl font-bold tracking-tight text-white sm:text-4xl;
-  @apply opacity-0 animate-fade-in-up;
+  @apply heading-serif text-5xl sm:text-7xl text-white mb-8;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-br from-white via-white to-white/30 bg-clip-text text-transparent;
+}
+
+.text-gradient-gold {
+  @apply bg-gradient-to-r from-gold-400 to-gold-600 bg-clip-text text-transparent;
+}
+
+/* Buttons */
+.btn-plateau {
+  @apply relative overflow-hidden rounded-full bg-plateau-700 px-10 py-5 font-bold text-white transition-all duration-500;
+  @apply hover:bg-plateau-600 hover:shadow-premium hover:-translate-y-1 active:scale-95;
+}
+
+.btn-gold {
+  @apply relative overflow-hidden rounded-full bg-gold-500 px-10 py-5 font-bold text-slate-950 transition-all duration-500;
+  @apply hover:bg-gold-400 hover:shadow-gold-glow hover:-translate-y-1 active:scale-95;
+}
+
+.btn-outline {
+  @apply relative overflow-hidden rounded-full border border-white/10 px-10 py-5 font-bold text-white transition-all duration-500;
+  @apply hover:bg-white/5 hover:border-white/20 active:scale-95;
+}
+
+/* Decorative Elements */
+.glow-mesh {
+  @apply absolute -z-10 blur-[120px] opacity-30;
+}
+
+.plateau-grid-bg {
+  background-image: var(--plateau-grid);
+  @apply absolute inset-0 -z-20 opacity-30;
 }

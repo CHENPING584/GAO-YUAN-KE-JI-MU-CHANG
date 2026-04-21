@@ -28,7 +28,7 @@ export const products = [
     id: 'yak-ribeye',
     category: '牦牛肉',
     name: '高原牦牛雪花肉',
-    origin: '玉树直供',
+    originLabel: '玉树直供',
     description: '选自高海拔散养牦牛，适合家庭烹饪、餐饮采购与节庆礼赠。',
     story:
       '该产品来自玉树高海拔天然牧场，采用散养方式，接入统一溯源、检疫和冷链交付流程，兼顾高端零售与渠道礼赠展示。',
@@ -36,7 +36,7 @@ export const products = [
     traceCode: 'QH-SC-YK-001',
     image: createProductImage('牦牛雪花肉', '玉树直供 · 高海拔散养', ['#14532d', '#1e3a8a']),
     features: ['高原散养', '检疫可追溯', '支持礼盒定制'],
-    pricing: {
+    prices: {
       retail: '¥168 / 盒',
       wholesale: '¥138 / 盒（20盒起）',
       gift: '¥398 / 礼盒',
@@ -51,7 +51,7 @@ export const products = [
     id: 'tibetan-lamb',
     category: '藏羊',
     name: '藏羊精品分割装',
-    origin: '果洛牧场',
+    originLabel: '果洛牧场',
     description: '草场自然放牧，适配社区团购、批量团餐与品牌联名礼盒。',
     story:
       '产品源于果洛高寒草场，强调天然放牧和统一检疫，适合团餐、渠道分销和区域品牌联名合作。',
@@ -59,7 +59,7 @@ export const products = [
     traceCode: 'QH-SC-ZY-016',
     image: createProductImage('藏羊分割装', '果洛牧场 · 天然放牧', ['#2d855c', '#475569']),
     features: ['天然放牧', '团购友好', '冷链发运'],
-    pricing: {
+    prices: {
       retail: '¥128 / 袋',
       wholesale: '¥108 / 袋（30袋起）',
       gift: '¥328 / 礼盒',
@@ -74,7 +74,7 @@ export const products = [
     id: 'highland-barley',
     category: '青稞',
     name: '青稞营养礼装',
-    origin: '海北原产',
+    originLabel: '海北原产',
     description: '适合文旅伴手礼、企业福利及高原农特产组合展示。',
     story:
       '青稞礼装突出海北原产地故事和联名文旅属性，适合企业福利、伴手礼和区域特色组合展示。',
@@ -82,7 +82,7 @@ export const products = [
     traceCode: 'QH-SC-QK-032',
     image: createProductImage('青稞礼装', '海北原产 · 农文旅联名', ['#b45309', '#365314']),
     features: ['海北原产', '礼赠属性强', '适合联名展示'],
-    pricing: {
+    prices: {
       retail: '¥69 / 盒',
       wholesale: '¥52 / 盒（50盒起）',
       gift: '¥168 / 礼盒',
@@ -97,7 +97,7 @@ export const products = [
     id: 'goji-berry',
     category: '枸杞',
     name: '高原枸杞臻选装',
-    origin: '柴达木优选',
+    originLabel: '柴达木优选',
     description: '面向健康零售、企业定制和私域社群复购场景。',
     story:
       '柴达木产区枸杞突出健康属性和复购潜力，适合社群私域转化、企业定制和养生伴手礼场景。',
@@ -105,7 +105,7 @@ export const products = [
     traceCode: 'QH-SC-GQ-021',
     image: createProductImage('高原枸杞', '柴达木优选 · 健康滋补', ['#b91c1c', '#7c2d12']),
     features: ['柴达木优选', '健康滋补', '适合私域复购'],
-    pricing: {
+    prices: {
       retail: '¥88 / 罐',
       wholesale: '¥72 / 罐（40罐起）',
       gift: '¥218 / 礼盒',
