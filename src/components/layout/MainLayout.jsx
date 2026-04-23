@@ -10,12 +10,9 @@ import {
   Users, 
   MessageCircle,
   ChevronRight,
-  LogIn,
-  LogOut,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { getSupabaseBrowserClient } from '../../lib/supabase/client';
+import { useState } from 'react';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 
 const navItems = [
   { label: '首页', to: '/', icon: Home, desc: '回到大厅起点' },
@@ -36,36 +33,6 @@ function navClassName({ isActive }) {
 
 export default function MainLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const client = getSupabaseBrowserClient();
-
-    if (!client) {
-      setIsAuthenticated(false);
-      return undefined;
-    }
-
-    let mounted = true;
-
-    client.auth.getUser().then(({ data }) => {
-      if (mounted) {
-        setIsAuthenticated(Boolean(data.user));
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = client.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session?.user));
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const handleMobileNav = (to) => {
     setIsMenuOpen(false);
@@ -83,20 +50,6 @@ export default function MainLayout() {
 
     window.location.assign(to);
   };
-
-  const handleAuthAction = async () => {
-    const client = getSupabaseBrowserClient();
-
-    if (!isAuthenticated || !client) {
-      navigate('/auth');
-      return;
-    }
-
-    await client.auth.signOut();
-    setIsMenuOpen(false);
-    navigate('/auth');
-  };
-
   return (
     <div className="flex min-h-screen flex-col bg-[#080d0b] overflow-x-hidden">
       {/* 顶部导航栏 - 使用 pointer-events-none 确保不会拦截下方菜单的点击 */}
@@ -129,13 +82,6 @@ export default function MainLayout() {
                   <span className="absolute bottom-0 left-0 h-[1px] w-full origin-right scale-x-0 bg-gold-500 transition-transform duration-500 group-hover:origin-left group-hover:scale-x-100"></span>
                 </NavLink>
               ))}
-              <button
-                className="btn-outline !px-6 !py-3 text-xs uppercase tracking-[0.2em]"
-                onClick={() => void handleAuthAction()}
-                type="button"
-              >
-                {isAuthenticated ? '退出登录' : '登录注册'}
-              </button>
             </div>
 
             {/* 移动端菜单按钮 */}
@@ -188,24 +134,6 @@ export default function MainLayout() {
               {/* 菜单项列表 */}
               <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
                 <div className="grid gap-3">
-                  <button
-                    className="group flex w-full items-center gap-5 rounded-3xl border border-gold-500/15 bg-gold-500/5 p-5 text-left transition-all duration-500 hover:bg-gold-500/10 active:scale-[0.98]"
-                    onClick={() => void handleAuthAction()}
-                    type="button"
-                  >
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gold-500/10 text-gold-500 shadow-gold-glow/20">
-                      {isAuthenticated ? <LogOut className="h-6 w-6" /> : <LogIn className="h-6 w-6" />}
-                    </div>
-                    <div className="flex-1">
-                      <span className="block text-lg font-bold tracking-wide text-white transition-colors">
-                        {isAuthenticated ? '退出登录' : '登录 / 注册'}
-                      </span>
-                      <span className="block text-xs text-slate-400 transition-colors">
-                        {isAuthenticated ? '退出当前账户后重新选择身份' : '先登录，再申请发布者或进入农户后台'}
-                      </span>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-gold-500 transition-all duration-500 group-hover:translate-x-1" />
-                  </button>
                   {navItems.map((item) => (
                     <button
                       key={item.to}
@@ -274,7 +202,6 @@ export default function MainLayout() {
               <div className="space-y-4">
                 <h4 className="text-sm font-bold uppercase tracking-widest text-white">农户服务</h4>
                 <ul className="space-y-2 text-sm text-slate-400">
-                  <li><NavLink to="/auth" className="hover:text-gold-500 transition-colors">登录 / 注册</NavLink></li>
                   <li><NavLink to="/dashboard/farmer" className="hover:text-gold-500 transition-colors">农户后台</NavLink></li>
                   <li><NavLink to="/apply-farmer" className="hover:text-gold-500 transition-colors">申请入驻</NavLink></li>
                 </ul>

@@ -70,8 +70,8 @@ export default function HomePage() {
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </span>
             </Link>
-            <Link className="btn-outline group w-full sm:w-auto" to="/auth">
-              <span className="flex items-center justify-center">登录后申请发布者</span>
+            <Link className="btn-outline group w-full sm:w-auto" to="/apply-farmer">
+              <span className="flex items-center justify-center">申请发布者入驻</span>
             </Link>
             <Link className="btn-outline group w-full sm:w-auto" to="/showcase">
               <span className="flex items-center justify-center">浏览数字牧场</span>

@@ -3,7 +3,8 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router-dom/server.mjs";
 import { useNavigate, Link, useLocation, Navigate, NavLink, Outlet, useParams, Routes, Route } from "react-router-dom";
-import { Lock, KeyRound, Clock3, Video, MapPinned, MessageSquareWarning, BadgeCheck, QrCode, ShieldCheck, UserRound, Phone, Upload, ImagePlus, LoaderCircle, CheckCircle2, ArrowRight, LogIn, UserPlus, ArrowLeft, Mountain, Home, Search, Store, User, Users, MessageCircle, X as X$1, Menu, LogOut, ChevronRight, MessageCircleMore, Camera, Package, Trash2, Leaf, Waves, Star, ClipboardList, Medal, ImageIcon, Navigation, ScanLine, ShieldPlus, Building2, FileCheck2 } from "lucide-react";
+import { Lock, KeyRound, Clock3, Video, MapPinned, MessageSquareWarning, BadgeCheck, QrCode, ShieldCheck, UserRound, Phone, Upload, ImagePlus, LoaderCircle, CheckCircle2, ArrowRight, ArrowLeft, Mountain, Home, Search, Store, User, Users, MessageCircle, X as X$1, Menu, ChevronRight, MessageCircleMore, Camera, Package, Trash2, Leaf, Waves, Star, ClipboardList, Medal, ImageIcon, Navigation, ScanLine, ShieldPlus, Building2, FileCheck2 } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 function canWriteProducts(role) {
   return role === "farmer";
 }
@@ -19,30 +20,6 @@ async function getCurrentProfile(client) {
   const { data, error } = await client.from("profiles").select("id, role, phone, wechat_qr_url, ranch_location, created_at, updated_at").eq("id", user.id).single();
   if (error || !data) {
     throw new Error("读取用户资料失败。");
-  }
-  return data;
-}
-async function ensureCurrentProfile(client, defaults) {
-  const user = await requireUser(client);
-  const existing = await client.from("profiles").select("id, role, phone, wechat_qr_url, ranch_location, created_at, updated_at").eq("id", user.id).single();
-  if (existing.data) {
-    return existing.data;
-  }
-  const now = (/* @__PURE__ */ new Date()).toISOString();
-  const { data, error } = await client.from("profiles").upsert(
-    {
-      id: user.id,
-      role: "user",
-      phone: null,
-      wechat_qr_url: null,
-      ranch_location: null,
-      created_at: now,
-      updated_at: now
-    },
-    { onConflict: "id" }
-  ).select("id, role, phone, wechat_qr_url, ranch_location, created_at, updated_at").single();
-  if (error || !data) {
-    throw new Error("初始化用户资料失败。");
   }
   return data;
 }
@@ -165,10 +142,19 @@ async function reviewFarmerApplication(client, payload) {
     throw new Error("同步用户角色失败。");
   }
 }
+let browserClient = null;
 function getSupabaseBrowserClient() {
-  {
-    return null;
+  const supabaseUrl = "https://qlqdyqsbufgdjndvue.supabase.com";
+  const supabaseAnonKey = "sb_publishable_xiBD7yzEeXyt5u1dXlcdxA__Rb5kUPn";
+  if (!browserClient) {
+    browserClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true
+      }
+    });
   }
+  return browserClient;
 }
 const ADMIN_AUTH_CODE = "XC0115";
 function isQinghaiLocation(locationText) {
@@ -522,8 +508,8 @@ function ApplyFarmerPage() {
       } catch {
         if (!cancelled) {
           setStatus({
-            type: "warning",
-            message: "请先登录后再申请成为发布者。"
+            type: "idle",
+            message: "请先填写基础资料与证明素材，提交时系统会校验当前服务状态。"
           });
         }
       } finally {
@@ -605,7 +591,7 @@ function ApplyFarmerPage() {
         error: userError
       } = await client.auth.getUser();
       if (userError || !user) {
-        throw new Error("请先登录后再提交申请。");
+        throw new Error("当前发布者申请通道暂未完成身份校验接入，请先确保 Supabase 认证服务可访问后再提交。");
       }
       const videoUrl = await uploadMedia(client, user.id);
       const application = await applyForFarmer(client, {
@@ -637,7 +623,7 @@ function ApplyFarmerPage() {
     /* @__PURE__ */ jsxs("div", { className: "mb-8 max-w-4xl", children: [
       /* @__PURE__ */ jsx("p", { className: "text-sm uppercase tracking-[0.25em] text-plateau-200", children: "Apply Publisher" }),
       /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-bold text-white sm:text-4xl", children: "申请成为发布者" }),
-      /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-7 text-slate-300", children: "完成基础身份信息和真实性素材提交后，你的账户将进入发布者审核流程。审核通过后即可进入农户控制台发布产品。" })
+      /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-7 text-slate-300", children: "完成基础身份信息和真实性素材提交后，资料将进入平台审核流程。审核通过后即可进入农户控制台发布产品。" })
     ] }),
     /* @__PURE__ */ jsxs("div", { className: "grid gap-6 xl:grid-cols-[0.7fr_0.3fr]", children: [
       /* @__PURE__ */ jsxs("form", { className: "space-y-6", onSubmit: (event) => void handleSubmit(event), children: [
@@ -834,342 +820,6 @@ function ApplyFarmerPage() {
     ] })
   ] });
 }
-function getSupabaseConfigSummary() {
-  const supabaseUrl = void 0;
-  const supabaseAnonKey = void 0;
-  return {
-    hasUrl: Boolean(supabaseUrl),
-    hasAnonKey: Boolean(supabaseAnonKey),
-    supabaseUrl
-  };
-}
-function normalizeAuthError(error) {
-  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "认证失败，请稍后重试。";
-  if (/Failed to fetch/i.test(message)) {
-    return "认证服务连接失败。请检查 Supabase 项目是否可访问、环境变量是否正确，以及当前网络是否能连到 Supabase。";
-  }
-  if (/network/i.test(message)) {
-    return "网络连接异常，暂时无法连接认证服务，请稍后重试。";
-  }
-  if (/Invalid login credentials/i.test(message)) {
-    return "邮箱或密码不正确。";
-  }
-  if (/User already registered/i.test(message)) {
-    return "该邮箱已注册，请直接登录。";
-  }
-  if (/Email not confirmed/i.test(message)) {
-    return "该邮箱尚未完成验证，请先前往邮箱完成确认。";
-  }
-  return message;
-}
-function AuthInput({ className = "", ...props }) {
-  return /* @__PURE__ */ jsx(
-    "input",
-    {
-      ...props,
-      className: [
-        "w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-base text-white outline-none transition",
-        "placeholder:text-slate-500 focus:border-plateau-400",
-        className
-      ].join(" ")
-    }
-  );
-}
-function AuthPage() {
-  const navigate = useNavigate();
-  const config = getSupabaseConfigSummary();
-  const isConfigReady = config.hasUrl && config.hasAnonKey;
-  const [mode, setMode] = useState("signin");
-  const [booting, setBooting] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState({
-    type: "idle",
-    message: "登录后即可提交发布者申请、查看审核状态并管理农户后台。"
-  });
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: ""
-  });
-  useEffect(() => {
-    let cancelled = false;
-    async function bootstrap() {
-      const client = getSupabaseBrowserClient();
-      if (!client) {
-        if (!cancelled) {
-          setStatus({
-            type: "warning",
-            message: "尚未配置 Supabase 环境变量，请先设置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY。"
-          });
-          setBooting(false);
-        }
-        return;
-      }
-      try {
-        const {
-          data: { user }
-        } = await client.auth.getUser();
-        if (!user || cancelled) {
-          return;
-        }
-        const profile = await ensureCurrentProfile(client);
-        if (cancelled) {
-          return;
-        }
-        if (profile.role === "farmer") {
-          navigate("/dashboard/farmer", { replace: true });
-          return;
-        }
-        if (profile.role === "pending_farmer") {
-          navigate("/audit-status", { replace: true });
-          return;
-        }
-        navigate("/apply-farmer", { replace: true });
-      } catch {
-      } finally {
-        if (!cancelled) {
-          setBooting(false);
-        }
-      }
-    }
-    void bootstrap();
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
-  const statusClassName = useMemo(() => {
-    if (status.type === "error") {
-      return "border-red-500/30 bg-red-500/10 text-red-200";
-    }
-    if (status.type === "success") {
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
-    }
-    if (status.type === "warning") {
-      return "border-gold-500/30 bg-gold-500/10 text-amber-100";
-    }
-    return "border-white/10 bg-white/[0.03] text-slate-300";
-  }, [status.type]);
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData((current) => ({
-      ...current,
-      [name]: value
-    }));
-  };
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const client = getSupabaseBrowserClient();
-    if (!client) {
-      setStatus({
-        type: "warning",
-        message: "尚未配置 Supabase 环境变量，请先设置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY。"
-      });
-      return;
-    }
-    if (!formData.email || !formData.password) {
-      setStatus({
-        type: "error",
-        message: "请输入邮箱和密码。"
-      });
-      return;
-    }
-    if (mode === "signup" && formData.password !== formData.confirmPassword) {
-      setStatus({
-        type: "error",
-        message: "两次输入的密码不一致。"
-      });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      if (mode === "signin") {
-        const { error: error2 } = await client.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password
-        });
-        if (error2) {
-          throw new Error(error2.message || "登录失败，请检查邮箱和密码。");
-        }
-        await ensureCurrentProfile(client);
-        const profile = await getCurrentProfile(client);
-        setStatus({
-          type: "success",
-          message: "登录成功，正在为你跳转。"
-        });
-        if (profile.role === "farmer") {
-          navigate("/dashboard/farmer", { replace: true });
-          return;
-        }
-        if (profile.role === "pending_farmer") {
-          navigate("/audit-status", { replace: true });
-          return;
-        }
-        navigate("/apply-farmer", { replace: true });
-        return;
-      }
-      const { data, error } = await client.auth.signUp({
-        email: formData.email,
-        password: formData.password
-      });
-      if (error) {
-        throw new Error(error.message || "注册失败，请稍后重试。");
-      }
-      if (data.user && data.session) {
-        await ensureCurrentProfile(client);
-        setStatus({
-          type: "success",
-          message: "注册成功，已自动登录，正在前往发布者申请页。"
-        });
-        navigate("/apply-farmer", { replace: true });
-        return;
-      }
-      setStatus({
-        type: "success",
-        message: "注册成功，请前往邮箱完成验证后再登录。"
-      });
-      setMode("signin");
-      setFormData((current) => ({
-        ...current,
-        password: "",
-        confirmPassword: ""
-      }));
-    } catch (error) {
-      setStatus({
-        type: "error",
-        message: normalizeAuthError(error)
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  return /* @__PURE__ */ jsxs("div", { className: "relative isolate min-h-screen overflow-x-hidden", children: [
-    /* @__PURE__ */ jsx("div", { className: "plateau-grid-bg" }),
-    /* @__PURE__ */ jsx("div", { className: "glow-mesh top-[5%] left-[-10%] h-[360px] w-[360px] bg-plateau-900/30" }),
-    /* @__PURE__ */ jsx("div", { className: "glow-mesh bottom-[10%] right-[-5%] h-[420px] w-[420px] bg-gold-900/10" }),
-    /* @__PURE__ */ jsx("section", { className: "container-shell relative py-28 lg:py-40", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center", children: [
-      /* @__PURE__ */ jsxs("div", { className: "max-w-3xl", children: [
-        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-3 rounded-full border border-white/5 bg-white/[0.02] px-5 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-500 backdrop-blur-md", children: [
-          /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
-          "账户认证入口"
-        ] }),
-        /* @__PURE__ */ jsxs("h1", { className: "section-title mt-8 max-w-4xl text-4xl sm:text-5xl lg:text-6xl", children: [
-          "登录后进入",
-          /* @__PURE__ */ jsx("span", { className: "text-gradient-gold", children: " 发布者申请与农户后台" })
-        ] }),
-        /* @__PURE__ */ jsx("p", { className: "mt-6 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg", children: "当前项目已经接入数据库权限链路，但之前缺少实际登录入口。现在你可以先注册或登录，再继续申请发布者、查看审核状态与管理商品。" }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-8 rounded-[2rem] border border-white/10 bg-white/[0.02] p-5 text-sm leading-7 text-slate-400", children: [
-          /* @__PURE__ */ jsx("p", { className: "font-semibold text-white", children: "当前认证配置状态" }),
-          /* @__PURE__ */ jsxs("p", { className: "mt-2", children: [
-            "`VITE_SUPABASE_URL`：",
-            config.hasUrl ? "已配置" : "未配置"
-          ] }),
-          /* @__PURE__ */ jsxs("p", { children: [
-            "`VITE_SUPABASE_ANON_KEY`：",
-            config.hasAnonKey ? "已配置" : "未配置"
-          ] }),
-          null
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-10 flex flex-col gap-4 sm:flex-row", children: [
-          /* @__PURE__ */ jsx(Link, { className: "btn-outline w-full sm:w-auto", to: "/apply-farmer", children: "我先看看申请页" }),
-          /* @__PURE__ */ jsx(Link, { className: "btn-outline w-full sm:w-auto", to: "/dashboard/farmer", children: "我已登录，进入后台" })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "glass-card w-full p-6 sm:p-8 lg:p-10", children: [
-        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-2 gap-3 rounded-full border border-white/5 bg-white/[0.02] p-2", children: [
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              className: [
-                "rounded-full px-4 py-3 text-sm font-bold transition-all duration-300",
-                mode === "signin" ? "bg-gold-500 text-slate-950" : "text-slate-400 hover:bg-white/5 hover:text-white"
-              ].join(" "),
-              onClick: () => setMode("signin"),
-              type: "button",
-              children: "登录"
-            }
-          ),
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              className: [
-                "rounded-full px-4 py-3 text-sm font-bold transition-all duration-300",
-                mode === "signup" ? "bg-gold-500 text-slate-950" : "text-slate-400 hover:bg-white/5 hover:text-white"
-              ].join(" "),
-              onClick: () => setMode("signup"),
-              type: "button",
-              children: "注册"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxs("form", { className: "mt-8 space-y-5", onSubmit: handleSubmit, children: [
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("label", { className: "mb-3 block text-xs font-bold uppercase tracking-widest text-slate-500", children: "邮箱" }),
-            /* @__PURE__ */ jsx(
-              AuthInput,
-              {
-                autoComplete: "email",
-                name: "email",
-                onChange: handleChange,
-                placeholder: "请输入登录邮箱",
-                type: "email",
-                value: formData.email
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("label", { className: "mb-3 block text-xs font-bold uppercase tracking-widest text-slate-500", children: "密码" }),
-            /* @__PURE__ */ jsx(
-              AuthInput,
-              {
-                autoComplete: mode === "signin" ? "current-password" : "new-password",
-                name: "password",
-                onChange: handleChange,
-                placeholder: "请输入密码",
-                type: "password",
-                value: formData.password
-              }
-            )
-          ] }),
-          mode === "signup" && /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("label", { className: "mb-3 block text-xs font-bold uppercase tracking-widest text-slate-500", children: "确认密码" }),
-            /* @__PURE__ */ jsx(
-              AuthInput,
-              {
-                autoComplete: "new-password",
-                name: "confirmPassword",
-                onChange: handleChange,
-                placeholder: "请再次输入密码",
-                type: "password",
-                value: formData.confirmPassword
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsx("div", { className: `rounded-3xl border px-5 py-4 text-sm leading-7 ${statusClassName}`, children: booting ? "正在检查当前登录状态..." : status.message }),
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              className: "btn-gold flex w-full items-center justify-center gap-3 !py-4 text-sm uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-60",
-              disabled: submitting || booting || !isConfigReady,
-              type: "submit",
-              children: submitting || booting ? /* @__PURE__ */ jsxs(Fragment, { children: [
-                /* @__PURE__ */ jsx(LoaderCircle, { className: "h-5 w-5 animate-spin" }),
-                "正在处理中"
-              ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
-                mode === "signin" ? /* @__PURE__ */ jsx(LogIn, { className: "h-5 w-5" }) : /* @__PURE__ */ jsx(UserPlus, { className: "h-5 w-5" }),
-                mode === "signin" ? "立即登录" : "创建账户"
-              ] })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxs("p", { className: "mt-6 text-center text-xs leading-6 text-slate-500", children: [
-          "登录后会根据你的角色自动跳转到申请页、审核状态页或农户后台。",
-          /* @__PURE__ */ jsx(Link, { className: "ml-1 text-gold-500 hover:text-gold-400", to: "/apply-farmer", children: "继续前往发布者申请" }),
-          /* @__PURE__ */ jsx(ArrowRight, { className: "ml-1 inline h-3.5 w-3.5" })
-        ] })
-      ] })
-    ] }) })
-  ] });
-}
 function AuditStatusPage() {
   var _a;
   const location = useLocation();
@@ -1362,30 +1012,6 @@ function navClassName({ isActive }) {
 }
 function MainLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const navigate = useNavigate();
-  useEffect(() => {
-    const client = getSupabaseBrowserClient();
-    if (!client) {
-      setIsAuthenticated(false);
-      return void 0;
-    }
-    let mounted = true;
-    client.auth.getUser().then(({ data }) => {
-      if (mounted) {
-        setIsAuthenticated(Boolean(data.user));
-      }
-    });
-    const {
-      data: { subscription }
-    } = client.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session == null ? void 0 : session.user));
-    });
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
   const handleMobileNav = (to) => {
     setIsMenuOpen(false);
     if (typeof window === "undefined") {
@@ -1396,16 +1022,6 @@ function MainLayout() {
       return;
     }
     window.location.assign(to);
-  };
-  const handleAuthAction = async () => {
-    const client = getSupabaseBrowserClient();
-    if (!isAuthenticated || !client) {
-      navigate("/auth");
-      return;
-    }
-    await client.auth.signOut();
-    setIsMenuOpen(false);
-    navigate("/auth");
   };
   return /* @__PURE__ */ jsxs("div", { className: "flex min-h-screen flex-col bg-[#080d0b] overflow-x-hidden", children: [
     /* @__PURE__ */ jsx("header", { className: "fixed top-0 left-0 right-0 z-[200] py-6 pointer-events-none", children: /* @__PURE__ */ jsx("nav", { className: "container-shell pointer-events-auto", children: /* @__PURE__ */ jsxs("div", { className: "glass-card flex items-center justify-between px-8 py-4 !rounded-full border-white/10 bg-black/40 backdrop-blur-2xl", children: [
@@ -1421,29 +1037,18 @@ function MainLayout() {
           ]
         }
       ),
-      /* @__PURE__ */ jsxs("div", { className: "hidden items-center gap-8 lg:flex", children: [
-        navItems.map((item) => /* @__PURE__ */ jsxs(
-          NavLink,
-          {
-            className: navClassName,
-            to: item.to,
-            children: [
-              item.label,
-              /* @__PURE__ */ jsx("span", { className: "absolute bottom-0 left-0 h-[1px] w-full origin-right scale-x-0 bg-gold-500 transition-transform duration-500 group-hover:origin-left group-hover:scale-x-100" })
-            ]
-          },
-          item.to
-        )),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            className: "btn-outline !px-6 !py-3 text-xs uppercase tracking-[0.2em]",
-            onClick: () => void handleAuthAction(),
-            type: "button",
-            children: isAuthenticated ? "退出登录" : "登录注册"
-          }
-        )
-      ] }),
+      /* @__PURE__ */ jsx("div", { className: "hidden items-center gap-8 lg:flex", children: navItems.map((item) => /* @__PURE__ */ jsxs(
+        NavLink,
+        {
+          className: navClassName,
+          to: item.to,
+          children: [
+            item.label,
+            /* @__PURE__ */ jsx("span", { className: "absolute bottom-0 left-0 h-[1px] w-full origin-right scale-x-0 bg-gold-500 transition-transform duration-500 group-hover:origin-left group-hover:scale-x-100" })
+          ]
+        },
+        item.to
+      )) }),
       /* @__PURE__ */ jsx(
         "button",
         {
@@ -1476,41 +1081,23 @@ function MainLayout() {
                 /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold uppercase tracking-widest text-gold-500/60", children: "高原科技牧场 · 数字化桥梁" })
               ] })
             ] }) }),
-            /* @__PURE__ */ jsx("div", { className: "flex-1 overflow-y-auto px-6 py-6 custom-scrollbar", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-3", children: [
-              /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  className: "group flex w-full items-center gap-5 rounded-3xl border border-gold-500/15 bg-gold-500/5 p-5 text-left transition-all duration-500 hover:bg-gold-500/10 active:scale-[0.98]",
-                  onClick: () => void handleAuthAction(),
-                  type: "button",
-                  children: [
-                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gold-500/10 text-gold-500 shadow-gold-glow/20", children: isAuthenticated ? /* @__PURE__ */ jsx(LogOut, { className: "h-6 w-6" }) : /* @__PURE__ */ jsx(LogIn, { className: "h-6 w-6" }) }),
-                    /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
-                      /* @__PURE__ */ jsx("span", { className: "block text-lg font-bold tracking-wide text-white transition-colors", children: isAuthenticated ? "退出登录" : "登录 / 注册" }),
-                      /* @__PURE__ */ jsx("span", { className: "block text-xs text-slate-400 transition-colors", children: isAuthenticated ? "退出当前账户后重新选择身份" : "先登录，再申请发布者或进入农户后台" })
-                    ] }),
-                    /* @__PURE__ */ jsx(ChevronRight, { className: "h-5 w-5 text-gold-500 transition-all duration-500 group-hover:translate-x-1" })
-                  ]
-                }
-              ),
-              navItems.map((item) => /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  className: "group flex w-full items-center gap-5 rounded-3xl p-5 text-left transition-all duration-500 hover:bg-white/5 active:scale-[0.98] cursor-pointer border border-transparent hover:border-white/5",
-                  onClick: () => handleMobileNav(item.to),
-                  type: "button",
-                  children: [
-                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/5 text-slate-400 transition-all duration-500 group-hover:bg-gold-500/10 group-hover:text-gold-500 group-hover:shadow-gold-glow/20", children: /* @__PURE__ */ jsx(item.icon, { className: "h-6 w-6" }) }),
-                    /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
-                      /* @__PURE__ */ jsx("span", { className: "block text-lg font-bold tracking-wide text-slate-200 group-hover:text-white transition-colors", children: item.label }),
-                      /* @__PURE__ */ jsx("span", { className: "block text-xs text-slate-500 group-hover:text-slate-400 transition-colors", children: item.desc })
-                    ] }),
-                    /* @__PURE__ */ jsx(ChevronRight, { className: "h-5 w-5 text-slate-600 transition-all duration-500 group-hover:translate-x-1 group-hover:text-gold-500" })
-                  ]
-                },
-                item.to
-              ))
-            ] }) }),
+            /* @__PURE__ */ jsx("div", { className: "flex-1 overflow-y-auto px-6 py-6 custom-scrollbar", children: /* @__PURE__ */ jsx("div", { className: "grid gap-3", children: navItems.map((item) => /* @__PURE__ */ jsxs(
+              "button",
+              {
+                className: "group flex w-full items-center gap-5 rounded-3xl p-5 text-left transition-all duration-500 hover:bg-white/5 active:scale-[0.98] cursor-pointer border border-transparent hover:border-white/5",
+                onClick: () => handleMobileNav(item.to),
+                type: "button",
+                children: [
+                  /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/5 text-slate-400 transition-all duration-500 group-hover:bg-gold-500/10 group-hover:text-gold-500 group-hover:shadow-gold-glow/20", children: /* @__PURE__ */ jsx(item.icon, { className: "h-6 w-6" }) }),
+                  /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+                    /* @__PURE__ */ jsx("span", { className: "block text-lg font-bold tracking-wide text-slate-200 group-hover:text-white transition-colors", children: item.label }),
+                    /* @__PURE__ */ jsx("span", { className: "block text-xs text-slate-500 group-hover:text-slate-400 transition-colors", children: item.desc })
+                  ] }),
+                  /* @__PURE__ */ jsx(ChevronRight, { className: "h-5 w-5 text-slate-600 transition-all duration-500 group-hover:translate-x-1 group-hover:text-gold-500" })
+                ]
+              },
+              item.to
+            )) }) }),
             /* @__PURE__ */ jsx("div", { className: "border-t border-white/5 bg-white/[0.02] px-10 py-8", children: /* @__PURE__ */ jsx(
               "button",
               {
@@ -1545,7 +1132,6 @@ function MainLayout() {
           /* @__PURE__ */ jsxs("div", { className: "space-y-4", children: [
             /* @__PURE__ */ jsx("h4", { className: "text-sm font-bold uppercase tracking-widest text-white", children: "农户服务" }),
             /* @__PURE__ */ jsxs("ul", { className: "space-y-2 text-sm text-slate-400", children: [
-              /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(NavLink, { to: "/auth", className: "hover:text-gold-500 transition-colors", children: "登录 / 注册" }) }),
               /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(NavLink, { to: "/dashboard/farmer", className: "hover:text-gold-500 transition-colors", children: "农户后台" }) }),
               /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsx(NavLink, { to: "/apply-farmer", className: "hover:text-gold-500 transition-colors", children: "申请入驻" }) })
             ] })
@@ -2349,7 +1935,7 @@ function HomePage() {
           "开启溯源之旅",
           /* @__PURE__ */ jsx(ArrowRight, { className: "ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" })
         ] }) }),
-        /* @__PURE__ */ jsx(Link, { className: "btn-outline group w-full sm:w-auto", to: "/auth", children: /* @__PURE__ */ jsx("span", { className: "flex items-center justify-center", children: "登录后申请发布者" }) }),
+        /* @__PURE__ */ jsx(Link, { className: "btn-outline group w-full sm:w-auto", to: "/apply-farmer", children: /* @__PURE__ */ jsx("span", { className: "flex items-center justify-center", children: "申请发布者入驻" }) }),
         /* @__PURE__ */ jsx(Link, { className: "btn-outline group w-full sm:w-auto", to: "/showcase", children: /* @__PURE__ */ jsx("span", { className: "flex items-center justify-center", children: "浏览数字牧场" }) })
       ] })
     ] }) }),
@@ -3554,7 +3140,6 @@ function App() {
         /* @__PURE__ */ jsx(Route, { path: "/showcase", element: /* @__PURE__ */ jsx(ShowcasePage, {}) }),
         /* @__PURE__ */ jsx(Route, { path: "/showcase/:productId", element: /* @__PURE__ */ jsx(ProductDetailPage, {}) }),
         /* @__PURE__ */ jsx(Route, { path: "/apply-farmer", element: /* @__PURE__ */ jsx(ApplyFarmerPage, {}) }),
-        /* @__PURE__ */ jsx(Route, { path: "/auth", element: /* @__PURE__ */ jsx(AuthPage, {}) }),
         /* @__PURE__ */ jsx(Route, { path: "/audit-status", element: /* @__PURE__ */ jsx(AuditStatusPage, {}) }),
         /* @__PURE__ */ jsx(
           Route,

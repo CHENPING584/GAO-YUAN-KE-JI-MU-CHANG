@@ -130,8 +130,8 @@ export default function ApplyFarmerPage() {
       } catch {
         if (!cancelled) {
           setStatus({
-            type: 'warning',
-            message: '请先登录后再申请成为发布者。',
+            type: 'idle',
+            message: '请先填写基础资料与证明素材，提交时系统会校验当前服务状态。',
           });
         }
       } finally {
@@ -234,7 +234,7 @@ export default function ApplyFarmerPage() {
       } = await client.auth.getUser();
 
       if (userError || !user) {
-        throw new Error('请先登录后再提交申请。');
+        throw new Error('当前发布者申请通道暂未完成身份校验接入，请先确保 Supabase 认证服务可访问后再提交。');
       }
 
       const videoUrl = await uploadMedia(client, user.id);
@@ -277,7 +277,7 @@ export default function ApplyFarmerPage() {
           申请成为发布者
         </h2>
         <p className="mt-4 text-base leading-7 text-slate-300">
-          完成基础身份信息和真实性素材提交后，你的账户将进入发布者审核流程。审核通过后即可进入农户控制台发布产品。
+          完成基础身份信息和真实性素材提交后，资料将进入平台审核流程。审核通过后即可进入农户控制台发布产品。
         </p>
       </div>
 
