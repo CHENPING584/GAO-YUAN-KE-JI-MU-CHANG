@@ -4,6 +4,44 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ensureCurrentProfile, getCurrentProfile } from '../lib/supabase/farmerAccess.ts';
 import { getSupabaseBrowserClient } from '../lib/supabase/client';
 
+function getSupabaseConfigSummary() {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  return {
+    hasUrl: Boolean(supabaseUrl),
+    hasAnonKey: Boolean(supabaseAnonKey),
+    supabaseUrl,
+  };
+}
+
+function normalizeAuthError(error) {
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : '认证失败，请稍后重试。';
+
+  if (/Failed to fetch/i.test(message)) {
+    return '认证服务连接失败。请检查 Supabase 项目是否可访问、环境变量是否正确，以及当前网络是否能连到 Supabase。';
+  }
+
+  if (/network/i.test(message)) {
+    return '网络连接异常，暂时无法连接认证服务，请稍后重试。';
+  }
+
+  if (/Invalid login credentials/i.test(message)) {
+    return '邮箱或密码不正确。';
+  }
+
+  if (/User already registered/i.test(message)) {
+    return '该邮箱已注册，请直接登录。';
+  }
+
+  if (/Email not confirmed/i.test(message)) {
+    return '该邮箱尚未完成验证，请先前往邮箱完成确认。';
+  }
+
+  return message;
+}
+
 function AuthInput({ className = '', ...props }) {
   return (
     <input
@@ -19,6 +57,8 @@ function AuthInput({ className = '', ...props }) {
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const config = getSupabaseConfigSummary();
+  const isConfigReady = config.hasUrl && config.hasAnonKey;
   const [mode, setMode] = useState('signin');
   const [booting, setBooting] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -213,7 +253,7 @@ export default function AuthPage() {
     } catch (error) {
       setStatus({
         type: 'error',
-        message: error instanceof Error ? error.message : '认证失败，请稍后重试。',
+        message: normalizeAuthError(error),
       });
     } finally {
       setSubmitting(false);
@@ -240,6 +280,14 @@ export default function AuthPage() {
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
               当前项目已经接入数据库权限链路，但之前缺少实际登录入口。现在你可以先注册或登录，再继续申请发布者、查看审核状态与管理商品。
             </p>
+            <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.02] p-5 text-sm leading-7 text-slate-400">
+              <p className="font-semibold text-white">当前认证配置状态</p>
+              <p className="mt-2">`VITE_SUPABASE_URL`：{config.hasUrl ? '已配置' : '未配置'}</p>
+              <p>`VITE_SUPABASE_ANON_KEY`：{config.hasAnonKey ? '已配置' : '未配置'}</p>
+              {config.supabaseUrl ? (
+                <p className="mt-2 break-all text-xs text-slate-500">服务地址：{config.supabaseUrl}</p>
+              ) : null}
+            </div>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
               <Link className="btn-outline w-full sm:w-auto" to="/apply-farmer">
                 我先看看申请页
@@ -329,7 +377,7 @@ export default function AuthPage() {
 
               <button
                 className="btn-gold flex w-full items-center justify-center gap-3 !py-4 text-sm uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={submitting || booting}
+                disabled={submitting || booting || !isConfigReady}
                 type="submit"
               >
                 {submitting || booting ? (
