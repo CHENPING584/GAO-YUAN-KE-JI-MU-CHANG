@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   ChevronRight,
   ImagePlus,
+  LoaderCircle,
   Package,
   Phone,
   QrCode,
@@ -12,6 +13,14 @@ import {
   Video,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import {
+  createProductAsFarmer,
+  deleteCurrentFarmerProduct,
+  listCurrentFarmerProducts,
+  updateCurrentProfile,
+  getCurrentProfile,
+} from '../lib/supabase/farmerAccess.ts';
+import { getSupabaseBrowserClient } from '../lib/supabase/client';
 
 const initialPublishedProducts = [
   {
@@ -39,6 +48,35 @@ const initialPublishedProducts = [
     status: '在售中',
   },
 ];
+
+const STORAGE_BUCKET = 'farmer-media';
+
+function sanitizeFileName(name) {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '-');
+}
+
+function parseProductDescription(description) {
+  const raw = description ?? '';
+  const specsMatch = raw.match(/规格：([^\n]+)/);
+  const stockMatch = raw.match(/库存：([^\n]+)/);
+
+  return {
+    specs: specsMatch?.[1]?.trim() ?? '待补充',
+    stock: stockMatch?.[1]?.trim() ?? '待补充',
+  };
+}
+
+function formatPublishedProduct(product) {
+  const meta = parseProductDescription(product.description);
+  return {
+    id: product.id,
+    name: product.product_name,
+    specs: meta.specs,
+    price: product.price != null ? `¥${product.price}` : '待定',
+    stock: meta.stock,
+    status: '在售中',
+  };
+}
 
 function SectionHeader({ icon: Icon, title, hint }) {
   return (
@@ -90,11 +128,15 @@ export default function FarmerDashboardPage() {
   const [contactForm, setContactForm] = useState({
     phone: '189-9701-2234',
     wechatQrLabel: '当前已绑定微信二维码',
+    wechatQrUrl: '',
   });
   const [videoFile, setVideoFile] = useState(null);
   const [imageFiles, setImageFiles] = useState([]);
   const [qrFile, setQrFile] = useState(null);
   const [publishedProducts, setPublishedProducts] = useState(initialPublishedProducts);
+  const [isBooting, setIsBooting] = useState(true);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingContact, setIsSavingContact] = useState(false);
   const [submitMessage, setSubmitMessage] = useState(
     '填写商品信息并上传素材后，即可快速发布到农户控制台。',
   );
@@ -128,6 +170,59 @@ export default function FarmerDashboardPage() {
     };
   }, [imagePreviews, qrPreview, videoPreview]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      const client = getSupabaseBrowserClient();
+
+      if (!client) {
+        if (!cancelled) {
+          setSubmitMessage(
+            '尚未配置 Supabase 环境变量，当前显示的是本地演示数据。配置后将自动切换为数据库内容。',
+          );
+          setIsBooting(false);
+        }
+        return;
+      }
+
+      try {
+        const [profile, products] = await Promise.all([
+          getCurrentProfile(client),
+          listCurrentFarmerProducts(client),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        setContactForm({
+          phone: profile.phone ?? '',
+          wechatQrLabel: profile.wechat_qr_url ? '已绑定云端微信二维码' : '当前未上传微信二维码',
+          wechatQrUrl: profile.wechat_qr_url ?? '',
+        });
+        setPublishedProducts(products.map(formatPublishedProduct));
+        setSubmitMessage('数据库已连接，当前页面展示的是你的真实资料与商品。');
+      } catch (error) {
+        if (!cancelled) {
+          setSubmitMessage(
+            error instanceof Error ? error.message : '数据库连接失败，当前显示本地演示数据。',
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsBooting(false);
+        }
+      }
+    }
+
+    void bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handlePublishChange = (event) => {
     const { name, value } = event.target;
     setPublishForm((current) => ({
@@ -145,47 +240,96 @@ export default function FarmerDashboardPage() {
   };
 
   const handlePublishSubmit = (event) => {
-    event.preventDefault();
+    void (async () => {
+      event.preventDefault();
 
-    if (
-      !publishForm.productName ||
-      !publishForm.specs ||
-      !publishForm.price ||
-      !publishForm.stock
-    ) {
-      setSubmitMessage('请完整填写商品名称、规格、价格和库存。');
-      return;
-    }
+      if (
+        !publishForm.productName ||
+        !publishForm.specs ||
+        !publishForm.price ||
+        !publishForm.stock
+      ) {
+        setSubmitMessage('请完整填写商品名称、规格、价格和库存。');
+        return;
+      }
 
-    const nextProduct = {
-      id:
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `${Date.now()}`,
-      name: publishForm.productName,
-      specs: publishForm.specs,
-      price: publishForm.price,
-      stock: publishForm.stock,
-      status: '在售中',
-    };
+      const client = getSupabaseBrowserClient();
 
-    setPublishedProducts((current) => [nextProduct, ...current]);
-    setPublishForm({
-      productName: '',
-      specs: '',
-      price: '',
-      stock: '',
-    });
-    setVideoFile(null);
-    setImageFiles([]);
-    setSubmitMessage('新商品已加入已发布列表，你可以继续补充更多商品。');
+      if (!client) {
+        const nextProduct = {
+          id:
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now()}`,
+          name: publishForm.productName,
+          specs: publishForm.specs,
+          price: publishForm.price,
+          stock: publishForm.stock,
+          status: '在售中',
+        };
+
+        setPublishedProducts((current) => [nextProduct, ...current]);
+        setPublishForm({
+          productName: '',
+          specs: '',
+          price: '',
+          stock: '',
+        });
+        setVideoFile(null);
+        setImageFiles([]);
+        setSubmitMessage('当前未连接数据库，已仅在本地演示列表中新增商品。');
+        return;
+      }
+
+      setIsPublishing(true);
+
+      try {
+        const created = await createProductAsFarmer(client, {
+          product_name: publishForm.productName,
+          description: `规格：${publishForm.specs}\n库存：${publishForm.stock}`,
+          price: Number.parseFloat(String(publishForm.price).replace(/[^\d.]/g, '')) || null,
+        });
+
+        setPublishedProducts((current) => [formatPublishedProduct(created), ...current]);
+        setPublishForm({
+          productName: '',
+          specs: '',
+          price: '',
+          stock: '',
+        });
+        setVideoFile(null);
+        setImageFiles([]);
+        setSubmitMessage('商品已成功写入数据库。');
+      } catch (error) {
+        setSubmitMessage(error instanceof Error ? error.message : '商品发布失败，请稍后重试。');
+      } finally {
+        setIsPublishing(false);
+      }
+    })();
   };
 
   const handleTakeDown = (productId) => {
-    setPublishedProducts((current) =>
-      current.filter((product) => product.id !== productId),
-    );
-    setSubmitMessage('商品已成功下架。');
+    void (async () => {
+      const client = getSupabaseBrowserClient();
+
+      if (!client) {
+        setPublishedProducts((current) =>
+          current.filter((product) => product.id !== productId),
+        );
+        setSubmitMessage('当前未连接数据库，商品仅从本地演示列表中移除。');
+        return;
+      }
+
+      try {
+        await deleteCurrentFarmerProduct(client, productId);
+        setPublishedProducts((current) =>
+          current.filter((product) => product.id !== productId),
+        );
+        setSubmitMessage('商品已从数据库下架。');
+      } catch (error) {
+        setSubmitMessage(error instanceof Error ? error.message : '商品下架失败。');
+      }
+    })();
   };
 
   const handleQrUpload = (file) => {
@@ -195,7 +339,67 @@ export default function FarmerDashboardPage() {
       setContactForm((current) => ({
         ...current,
         wechatQrLabel: file.name,
+        wechatQrUrl: current.wechatQrUrl,
       }));
+    }
+  };
+
+  const handleSaveContact = async () => {
+    const client = getSupabaseBrowserClient();
+
+    if (!client) {
+      setSubmitMessage('尚未配置 Supabase 环境变量，当前无法保存数字名片。');
+      return;
+    }
+
+    setIsSavingContact(true);
+
+    try {
+      let wechatQrUrl = contactForm.wechatQrUrl;
+
+      if (qrFile) {
+        const {
+          data: { user },
+          error: userError,
+        } = await client.auth.getUser();
+
+        if (userError || !user) {
+          throw new Error('请先登录后再保存数字名片。');
+        }
+
+        const qrPath = `${user.id}/contact/qr-${Date.now()}-${sanitizeFileName(qrFile.name)}`;
+        const { error: uploadError } = await client.storage
+          .from(STORAGE_BUCKET)
+          .upload(qrPath, qrFile, {
+            upsert: true,
+            cacheControl: '3600',
+          });
+
+        if (uploadError) {
+          throw new Error('微信二维码上传失败，请确认 farmer-media bucket 可用。');
+        }
+
+        const { data } = client.storage.from(STORAGE_BUCKET).getPublicUrl(qrPath);
+        wechatQrUrl = data.publicUrl;
+      }
+
+      const profile = await updateCurrentProfile(client, {
+        phone: contactForm.phone,
+        wechat_qr_url: wechatQrUrl || null,
+      });
+
+      setContactForm((current) => ({
+        ...current,
+        phone: profile.phone ?? '',
+        wechatQrUrl: profile.wechat_qr_url ?? '',
+        wechatQrLabel: profile.wechat_qr_url ? '已绑定云端微信二维码' : '当前未上传微信二维码',
+      }));
+      setQrFile(null);
+      setSubmitMessage('数字名片已同步到数据库。');
+    } catch (error) {
+      setSubmitMessage(error instanceof Error ? error.message : '数字名片保存失败。');
+    } finally {
+      setIsSavingContact(false);
     }
   };
 
@@ -216,6 +420,12 @@ export default function FarmerDashboardPage() {
             已认证农户专享。在这里，您可以<span className="text-white font-bold">发布新品</span>、
             上传<span className="text-white font-bold">真实性证明</span>，并维护您的私域名片。
           </p>
+          {isBooting && (
+            <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300">
+              <LoaderCircle className="h-4 w-4 animate-spin text-gold-500" />
+              正在连接数据库并同步你的资料...
+            </div>
+          )}
         </div>
 
         <div className="mb-12 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
@@ -395,10 +605,11 @@ export default function FarmerDashboardPage() {
                 </div>
 
                 <button
-                  className="btn-gold !py-5 !px-12 text-sm tracking-widest uppercase"
+                  className="btn-gold !py-5 !px-12 text-sm tracking-widest uppercase disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isPublishing}
                   type="submit"
                 >
-                  立即发布商品
+                  {isPublishing ? '正在写入数据库' : '立即发布商品'}
                 </button>
               </div>
             </form>
@@ -517,6 +728,15 @@ export default function FarmerDashboardPage() {
                     {contactForm.wechatQrLabel}
                   </p>
                 </div>
+
+                <button
+                  className="btn-gold w-full !py-5 text-sm tracking-widest uppercase disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isSavingContact}
+                  onClick={() => void handleSaveContact()}
+                  type="button"
+                >
+                  {isSavingContact ? '正在保存名片' : '保存数字名片'}
+                </button>
               </div>
             </div>
           </div>

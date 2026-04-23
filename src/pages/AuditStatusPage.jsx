@@ -1,20 +1,73 @@
 import { ArrowLeft, Clock3, LoaderCircle, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { getLatestCurrentApplication, getCurrentProfile } from '../lib/supabase/farmerAccess.ts';
+import { getSupabaseBrowserClient } from '../lib/supabase/client';
 
 export default function AuditStatusPage() {
   const location = useLocation();
-  const submittedAt = location.state?.submittedAt
-    ? new Date(location.state.submittedAt).toLocaleString('zh-CN', {
-        hour12: false,
-      })
-    : null;
+  const [loading, setLoading] = useState(true);
+  const [submittedAt, setSubmittedAt] = useState(
+    location.state?.submittedAt
+      ? new Date(location.state.submittedAt).toLocaleString('zh-CN', {
+          hour12: false,
+        })
+      : null,
+  );
+  const [currentRole, setCurrentRole] = useState('pending_farmer');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      const client = getSupabaseBrowserClient();
+
+      if (!client) {
+        if (!cancelled) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const [application, profile] = await Promise.all([
+          getLatestCurrentApplication(client),
+          getCurrentProfile(client),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (application?.created_at) {
+          setSubmittedAt(
+            new Date(application.created_at).toLocaleString('zh-CN', {
+              hour12: false,
+            }),
+          );
+        }
+
+        setCurrentRole(profile.role);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section className="container-shell flex min-h-[72vh] items-center justify-center py-12 sm:py-16">
       <div className="glass-card w-full max-w-3xl overflow-hidden p-6 sm:p-10">
         <div className="rounded-[2rem] border border-amber-300/20 bg-[linear-gradient(135deg,rgba(14,165,233,0.12),rgba(245,158,11,0.18),rgba(15,23,42,0.45))] p-8 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white/10 text-amber-100">
-            <LoaderCircle className="h-10 w-10 animate-spin" />
+            <LoaderCircle className={`h-10 w-10 ${loading ? 'animate-spin' : ''}`} />
           </div>
 
           <p className="mt-6 text-sm uppercase tracking-[0.25em] text-amber-100/80">
@@ -41,7 +94,7 @@ export default function AuditStatusPage() {
               <ShieldCheck className="h-4 w-4 text-sky-200" />
               <span>当前角色</span>
             </div>
-            <p className="mt-3 text-lg font-semibold text-white">pending_farmer</p>
+            <p className="mt-3 text-lg font-semibold text-white">{currentRole}</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
             <div className="flex items-center gap-2 text-sm text-slate-400">

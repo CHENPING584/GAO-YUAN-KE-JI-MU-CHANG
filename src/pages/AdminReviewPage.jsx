@@ -9,23 +9,21 @@ import {
   QrCode,
   ShieldCheck,
   Video,
-  XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  getFarmerListings,
-  isQinghaiLocation,
-  updateFarmerListingStatus,
-} from '../utils/farmerListingsStore';
+  listFarmerApplicationsForReview,
+  reviewFarmerApplication,
+} from '../lib/supabase/farmerAccess.ts';
+import { getSupabaseBrowserClient } from '../lib/supabase/client';
 
 const ADMIN_AUTH_CODE = 'XC0115';
-
-function buildObjectUrl(file) {
-  if (!file || typeof window === 'undefined') {
-    return null;
+function isQinghaiLocation(locationText) {
+  if (!locationText) {
+    return false;
   }
 
-  return URL.createObjectURL(file);
+  return /青海|玉树|果洛|海东|海北|海西|海南州|黄南|西宁|柴达木/.test(locationText);
 }
 
 export default function AdminReviewPage() {
@@ -59,8 +57,16 @@ export default function AdminReviewPage() {
   };
 
   const loadListings = async () => {
+    const client = getSupabaseBrowserClient();
+
+    if (!client) {
+      setListings([]);
+      setSelectedId(null);
+      return;
+    }
+
     try {
-      const nextListings = await getFarmerListings();
+      const nextListings = await listFarmerApplicationsForReview(client);
       setListings(nextListings);
       setSelectedId((current) => current ?? nextListings[0]?.id ?? null);
     } catch {
@@ -79,42 +85,28 @@ export default function AdminReviewPage() {
     [listings, selectedId],
   );
 
-  const videoUrl = useMemo(
-    () => buildObjectUrl(selectedListing?.videoFile),
-    [selectedListing],
-  );
-  const qrUrl = useMemo(
-    () => buildObjectUrl(selectedListing?.qrImage),
-    [selectedListing],
-  );
-  const imageUrls = useMemo(
-    () =>
-      (selectedListing?.imageFiles ?? []).map((file) => ({
-        name: file.name,
-        url: buildObjectUrl(file),
-      })),
-    [selectedListing],
-  );
-
-  useEffect(
-    () => () => {
-      if (videoUrl) {
-        URL.revokeObjectURL(videoUrl);
-      }
-      if (qrUrl) {
-        URL.revokeObjectURL(qrUrl);
-      }
-      imageUrls.forEach((item) => URL.revokeObjectURL(item.url));
-    },
-    [imageUrls, qrUrl, videoUrl],
-  );
+  const videoUrl = selectedListing?.ranch_proof_video ?? null;
+  const qrUrl = selectedListing?.profile?.wechat_qr_url ?? null;
+  const locationText = selectedListing?.profile?.ranch_location ?? '未填写';
+  const phoneText = selectedListing?.profile?.phone ?? '未填写';
 
   const handleReview = async (status) => {
     if (!selectedListing) {
       return;
     }
 
-    await updateFarmerListingStatus(selectedListing.id, status, reviewNote);
+    const client = getSupabaseBrowserClient();
+
+    if (!client) {
+      return;
+    }
+
+    await reviewFarmerApplication(client, {
+      applicationId: selectedListing.id,
+      userId: selectedListing.user_id,
+      status,
+      reviewNote,
+    });
     await loadListings();
   };
 
@@ -206,7 +198,7 @@ export default function AdminReviewPage() {
                       <p className="heading-serif text-xl text-white group-hover:text-gold-400 transition-colors">
                         {item.productName}
                       </p>
-                      {isQinghaiLocation(item.location) ? (
+                      {isQinghaiLocation(item.profile?.ranch_location) ? (
                         <div className="rounded-full bg-gold-500/10 px-3 py-1 text-[8px] font-bold uppercase tracking-widest text-gold-500 border border-gold-500/20">
                           本地产地
                         </div>
@@ -218,7 +210,9 @@ export default function AdminReviewPage() {
                     </div>
                     <div className="flex items-center gap-3 text-slate-500">
                       <Clock3 className="h-4 w-4" />
-                      <span className="text-xs font-bold uppercase tracking-widest">{item.timestamp}</span>
+                      <span className="text-xs font-bold uppercase tracking-widest">
+                        {new Date(item.created_at).toLocaleString('zh-CN', { hour12: false })}
+                      </span>
                     </div>
                   </button>
                 ))
@@ -278,11 +272,11 @@ export default function AdminReviewPage() {
                         <div className="mt-6 space-y-3">
                            <div className="flex items-center justify-between text-xs">
                               <span className="text-slate-500 font-bold uppercase tracking-widest">拍摄坐标</span>
-                              <span className="text-white font-mono">{selectedListing.location}</span>
+                              <span className="text-white font-mono">{locationText}</span>
                            </div>
                            <div className="flex items-center justify-between text-xs">
                               <span className="text-slate-500 font-bold uppercase tracking-widest">系统判定</span>
-                              {isQinghaiLocation(selectedListing.location) ? (
+                              {isQinghaiLocation(locationText) ? (
                                 <span className="text-gold-500 font-bold">符合高原产地要求</span>
                               ) : (
                                 <span className="text-red-400 font-bold">产地信息异常</span>
@@ -310,10 +304,9 @@ export default function AdminReviewPage() {
                            <BadgeCheck className="h-4 w-4 text-gold-500" />
                            资质与细节图核验
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                           {imageUrls.map((img, idx) => (
-                             <img key={idx} alt={img.name} className="aspect-square w-full rounded-2xl object-cover shadow-premium" src={img.url} />
-                           ))}
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-sm leading-relaxed text-slate-500">
+                           当前数据库版本已接入申请视频、联系方式与牧场地址。
+                           若后续扩展补充图片字段，这里会自动展示更多审核素材。
                         </div>
                       </div>
 
@@ -328,7 +321,7 @@ export default function AdminReviewPage() {
                            </div>
                            <div className="space-y-3">
                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">联系电话</p>
-                              <p className="heading-serif text-2xl text-white">{selectedListing.phone}</p>
+                              <p className="heading-serif text-2xl text-white">{phoneText}</p>
                            </div>
                         </div>
                       </div>

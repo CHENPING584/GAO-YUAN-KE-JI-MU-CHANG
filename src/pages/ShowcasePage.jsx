@@ -7,7 +7,6 @@ import {
   QrCode,
   Search,
   ShieldCheck,
-  Sprout,
   Store,
   X,
 } from 'lucide-react';
@@ -220,4 +219,3 @@ export default function ShowcasePage() {
     </div>
   );
 }
-

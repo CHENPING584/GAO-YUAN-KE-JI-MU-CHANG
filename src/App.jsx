@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AdminReviewPage from './pages/AdminReviewPage';
 import ApplyFarmerPage from './pages/ApplyFarmerPage';
+import AuthPage from './pages/AuthPage';
 import AuditStatusPage from './pages/AuditStatusPage';
 import FarmerRouteGuard from './components/auth/FarmerRouteGuard';
 import MainLayout from './components/layout/MainLayout';
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/showcase" element={<ShowcasePage />} />
           <Route path="/showcase/:productId" element={<ProductDetailPage />} />
           <Route path="/apply-farmer" element={<ApplyFarmerPage />} />
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="/audit-status" element={<AuditStatusPage />} />
           <Route
             path="/dashboard/farmer"
